@@ -1,0 +1,105 @@
+(* Merr file for fcc. *)
+
+module Tokens = Ctokens
+open Ctokens
+open Token
+
+let message = function
+  | "__uint128_t"
+  | "int" -> function
+      | TK_COMMA		-> "expected identifier before ';'"
+      | TK_IDENTIFIER		-> "expected identifier or '(' before '%s'"
+      | TK_STRING_LITERAL	-> "expected identifier or '(' before string literal"
+      | _			-> "expected identifier or '('"
+
+  | "int a" -> function
+      | TK_IDENTIFIER		-> "expected ';' or initialiser before '%s'"
+      | _			-> "expected ';' after declarator"
+
+  | "f(foo foo)" -> function
+      | TK_IDENTIFIER		-> "unexpected identifier '%s' after parameter name"
+      | TK_TYPEDEF_NAME		-> "unexpected typedef name '%s' after parameter name"
+      				   "(did you intend to write it before the name?)"
+      | _			-> "unexpected token '%s' after parameter name"
+
+  | "a:" -> function
+      | TK_COLON		-> "top level declarator cannot be a bitfield"
+      | EOF			-> "expected ';' after toplevel declarator"
+      | _			-> "unexpected token '%s' after toplevel declarator"
+
+  | "a=a[" -> function
+      | TK_RSQBRACK		-> "array index cannot be empty"
+      | _			-> "expected expression as array index"
+
+  | "struct a{"
+  | "struct{" -> function
+      | EOF			-> "expected closing '}' or struct or union members"
+      | TK_IDENTIFIER		-> "expected type name before identifier '%s'"
+      | _			-> default
+
+  | "a[0" | "a=a[0"		-> "expected closing ']'"
+
+  | "a=1" | "int a = 1"		-> "expected ';' after initialised declarator"
+
+  | "a=++" | "a=*"		-> "expected expression in argument of unary operator"
+
+  | "a=1," | "a=a[1,"		-> "expected expression in expression sequence"
+
+  | "int(" | "int(("		-> "expected identifier or '('"
+  | "a(" | "int(a"		-> "expected closing ')'"
+
+  | "struct"			-> "declaration of anonymous struct or union must be a definition"
+  | "struct{}"			-> "expected ';' after struct or union"
+  | "struct{int a;"		-> "expected closing '}'"
+  | "struct{int"		-> "expected member name or bitfield after declaration specifiers"
+  | "struct{int;"		-> "expected member name or bitfield before ';'"
+  | "struct{int:"		-> "expected constant expression in bitfield"
+  | "struct{int:0"		-> "expected ';' at end of declaration list"
+
+  | "int f()" -> function
+      | EOF			-> "expected function body or ';'"
+      | _			-> default
+
+  | "int[" -> function
+      | TK_LSQBRACK		-> "expected identifier before array dimensions"
+      | _			-> default
+
+  | "f(){i" -> function
+      | EOF			-> "expected ';' after declaration"
+      | TK_IDENTIFIER		-> "declaring type of '%s' is not defined"
+      | _			-> default
+
+  | "f(){i:" -> function
+      | EOF			-> "expected statement after label"
+      | TK_RBRACE		-> "empty label statement"
+                                   "add ';' before the closing '}'"
+      | _			-> "unexpected '%s' token; expected statement after label"
+
+  | "f(){return 0:"		-> "unexpected '%s' token; expected ';' after return statement"
+  | "f(){return"		-> "expected expression or ';' in return statement"
+  (* After the "0", we are not in a state related to "return", only, but rather for all statements. *)
+  | "f(){return 0"		-> "expected ';' after statement"
+
+  | "static"			-> "expected type or identifier after storage class"
+
+  | "f(){"			-> "expected declaration or statement at end of input"
+  | "a["			-> "expected constant expression"
+  | "a="			-> "expected expression in initialiser"
+  | "a=1+"			-> "expected expression in argument of additive operator"
+  | "a=1*"			-> "expected expression in argument of multiplicative operator"
+  | "a=1>>"			-> "expected expression in argument of shift operator"
+  | "a=1<"			-> "expected expression in argument of relational operator"
+  | "a=1=="			-> "expected expression in argument of equality operator"
+  | "a=1&"			-> "expected expression in argument of bitwise 'and'"
+  | "a=1^"			-> "expected expression in argument of bitwise exclusive 'or'"
+  | "a=1|"			-> "expected expression in argument of bitwise 'or'"
+  | "a=1&&"			-> "expected expression in argument of logical 'and'"
+  | "a=1||"			-> "expected expression in argument of logical 'or'"
+  | "a=1="			-> "expected expression in argument of assignment operator"
+  | "a=1?"			-> "expected then-expression or ':' in conditional"
+  | "a=1?:"			-> "expected else-expression in conditional"
+  | "a=1 1"			-> "expected operator after expression"
+  | "a=\"\" 1"			-> "expected string literal continuation"
+  | "a={"			-> "expected expression or closing '}'"
+  | "if"			-> "unexpected token in toplevel declaration"
+  | "("				-> "expected identifier in declarator"

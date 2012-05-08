@@ -1,0 +1,6 @@
+"exlib": include
+"passes": include
+
+<{ast,attributes,constant,location,platform,sclass,tqual}.ml>: syntax_camlp4o, pkg_sexplib.syntax
+
+"cparser.mlypack": ctokens,dump,no_stdlib
