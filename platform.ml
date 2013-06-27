@@ -101,8 +101,8 @@ let default = {
   ptrdiff_t			= BasicType SLong;
   wchar_t			= BasicType SInt;
 
-  preprocessor			= "/usr/lib/gcc-snapshot/bin/gcc-snapshot -Wfatal-errors -xc -E";
-  compiler			= "/usr/lib/gcc-snapshot/bin/gcc-snapshot -Wfatal-errors -xc -fsyntax-only -";
+  preprocessor			= "gcc -Wfatal-errors -xc -E";
+  compiler			= "gcc -Wfatal-errors -xc -fsyntax-only -";
 }
 
 

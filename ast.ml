@@ -1,3 +1,5 @@
+open Sexplib.Conv
+
 (** The C abstract syntax definition. *)
 
 (** {6 Basic types during construction in parser} *)
@@ -191,9 +193,7 @@ and pseudo_operator =
   | OP_Cast			(** "[(a)b]" *)
   | OP_Sizeof			(** "[sizeof (a)]" *)
   | OP_Alignof			(** "[__alignof (a)]" *)
-#if IMPLEMENTATION
   with sexp
-#endif
 
 type attribute = expression Attributes.attribute
 
@@ -402,9 +402,7 @@ and declaration =
   (* Struct/union/enum types *)
   | Enumerator of position * (*id*)string * (*value*)expression option
   (** [Enumerator (_, id, value)] *)
-#if IMPLEMENTATION
   with sexp
-#endif
 
 
 (** {6 Main exception type} *)
@@ -420,18 +418,5 @@ type error =
 
 exception ASTError of error
 
-(** {6 S-Expression I/O} *)
-
-#if !IMPLEMENTATION
-val statement_of_sexp : Sexplib.Sexp.t -> statement
-val expression_of_sexp : Sexplib.Sexp.t -> expression
-val ctype_of_sexp : Sexplib.Sexp.t -> ctype
-val declaration_of_sexp : Sexplib.Sexp.t -> declaration
-
-val sexp_of_statement : statement -> Sexplib.Sexp.t
-val sexp_of_expression : expression -> Sexplib.Sexp.t
-val sexp_of_ctype : ctype -> Sexplib.Sexp.t
-val sexp_of_declaration : declaration -> Sexplib.Sexp.t
-
-val die : error -> 'a
-#endif
+let die error =
+  raise (ASTError error)

@@ -1,5 +1,6 @@
-type t =
-  S of string
+open Sexplib.Conv
+
+type t = string with sexp
 
 
 let uchar_of_int chr =
@@ -52,7 +53,7 @@ let uchar_of_int chr =
   ExString.of_array chars
 
 
-let adopt s = S s
-let to_string (S s) = s
+let adopt s = s
+let to_string s = s
 
-let length (S s) = String.length s
+let length = String.length

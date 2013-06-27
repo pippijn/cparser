@@ -29,7 +29,7 @@ let handle_return = function
  *************************************************)
 
 type result =
-  | TokenList of Ctokens.token list
+  | TokenList of C_tokens.token list
   | AST_Decl of Ast.declaration
   | AST_Expr of Ast.expression
   | AST_Stmt of Ast.statement
@@ -147,22 +147,22 @@ let exnwrap fn lexbuf arg =
     try
       fn lexbuf arg
     with
-    | Clexer.Lexing_error (pos, c) ->
+    | C_lexer.Lexing_error (pos, c) ->
         printf "%s unrecognised character '%s'\n" (Colour.white (string_of_position pos)) c;
         print_source pos;
         raise exit_failure
-    | Clexer.Eof ->
+    | C_lexer.Eof ->
         print_string "attempted to read past end-of-file\n";
         raise exit_failure
-    | Cparser.Error ->
+    | C_parser.Error ->
         let pos = Lexing.lexeme_start_p lexbuf in
         let message = "could not recover from syntax errors" in
         print_error pos message;
         raise exit_failure
-    | Cparser.StateError (token, state) ->
+    | C_parser.StateError (token, state) ->
         if not Settings.merr then
           let pos = Lexing.lexeme_start_p lexbuf in
-          let message = Errors.message state token in
+          let message = C_errors.message state token in
           print_error pos message
         else
           printf "(%d, %s)\n" state (Token.token_name token);
@@ -233,28 +233,28 @@ let astexnwrap fn arg =
 
 let rec next_token next tokens =
   match next () with
-  | Ctokens.EOF -> List.rev (Ctokens.EOF :: tokens)
+  | C_tokens.EOF -> List.rev (C_tokens.EOF :: tokens)
   | tok -> next_token next (tok :: tokens)
 
 let tokenise lexbuf =
-  let next = Clexer.token (Clexer.state ()) in
+  let next = C_lexer.token (C_lexer.state ()) in
   TokenList (next_token (fun () -> next lexbuf) [])
 
 
 
-(*****************************************************************
- * Call one of the Cparser interface functions to produce an AST *
- *****************************************************************)
+(******************************************************************
+ * Call one of the C_parser interface functions to produce an AST *
+ ******************************************************************)
 
 let entry_point tokeniser lexbuf = let open Settings in function
-  | EP_Decl -> AST_Decl (Cparser.parse_decl tokeniser lexbuf)
-  | EP_Expr -> AST_Expr (Cparser.parse_expr tokeniser lexbuf)
-  | EP_Stmt -> AST_Stmt (Cparser.parse_stmt tokeniser lexbuf)
-  | EP_Type -> AST_Type (Cparser.parse_type tokeniser lexbuf)
-  | EP_Unit -> AST_Unit (Cparser.parse_unit tokeniser lexbuf)
+  | EP_Decl -> AST_Decl (C_parser.parse_decl tokeniser lexbuf)
+  | EP_Expr -> AST_Expr (C_parser.parse_expr tokeniser lexbuf)
+  | EP_Stmt -> AST_Stmt (C_parser.parse_stmt tokeniser lexbuf)
+  | EP_Type -> AST_Type (C_parser.parse_type tokeniser lexbuf)
+  | EP_Unit -> AST_Unit (C_parser.parse_unit tokeniser lexbuf)
 
 let parse entry lexbuf =
-  let token = Clexer.token (Clexer.state ()) in
+  let token = C_lexer.token (C_lexer.state ()) in
 
   let tokeniser =
     if Settings.tokens then

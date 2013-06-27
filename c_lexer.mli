@@ -4,4 +4,4 @@ exception Eof
 type state
 
 val state : unit -> state
-val token : state -> Lexing.lexbuf -> Ctokens.token
+val token : state -> Lexing.lexbuf -> C_tokens.token

@@ -1,4 +1,4 @@
-exception Syntax_error of Ctokens.token * int * Lexing.position
+exception Syntax_error of C_tokens.token * int * Lexing.position
 
 
 let title = "C parser example"
@@ -19,8 +19,8 @@ let lang_mime_type = "text/x-c"
 let parse_string text =
   let lexbuf = Lexing.from_string text in
   try
-    Cparser.parse_unit (Clexer.token (Clexer.state ())) lexbuf
-  with Cparser.StateError (token, state) ->
+    C_parser.parse_unit (C_lexer.token (C_lexer.state ())) lexbuf
+  with C_parser.StateError (token, state) ->
     let open Lexing in
     raise (Syntax_error (token, state, lexeme_start_p lexbuf))
 
@@ -68,12 +68,12 @@ let parse wcols code sexp output error missing =
     output (Codegen.code_of_unit tu)
 
   with
-  | Clexer.Lexing_error (pos, c) ->
+  | C_lexer.Lexing_error (pos, c) ->
       let err = Printf.sprintf "%s: unrecognised character '%s'" (string_of_pos pos) c in
       error err
   | Syntax_error (token, state, pos) ->
       let open Lexing in
-      let msg = Errors.message state token in
+      let msg = C_errors.message state token in
       let pos = string_of_pos pos in
       let err = Printf.sprintf "%s: %s" pos (wrap (String.length pos + 2) wcols msg) in
 

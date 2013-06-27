@@ -2,13 +2,7 @@ open Big_int
 open Sexplib.Sexp
 open Sexplib.Conv
 
-
-type ustring = ExUTF8.t
-
-
-let ustring_of_sexp sx = ExUTF8.adopt (string_of_sexp sx)
-let sexp_of_ustring us = sexp_of_string (ExUTF8.to_string us)
-
+type ustring = ExUTF8.t with sexp
 
 type t =
   | NonConst
@@ -29,4 +23,4 @@ let to_big_int = function IntValue v -> v | _ -> failwith "to_int"
 let to_int v = int_of_big_int (to_big_int v)
 let to_float = function FloatValue v -> v | _ -> failwith "to_float"
 let to_string = function StringValue v -> v | _ -> failwith "to_string"
-let to_wstring = function WStringValue v -> (ExUTF8.to_string v) | _ -> failwith "to_wstring"
+let to_wstring = function WStringValue v -> (v :> string) | _ -> failwith "to_wstring"

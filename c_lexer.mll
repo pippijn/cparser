@@ -1,5 +1,5 @@
 {
-  open Ctokens
+  open C_tokens
   open Lexing
 
   exception Lexing_error of position * string

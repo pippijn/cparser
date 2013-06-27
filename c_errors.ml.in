@@ -1,7 +1,7 @@
 (* Merr file for fcc. *)
 
-module Tokens = Ctokens
-open Ctokens
+module Tokens = C_tokens
+open C_tokens
 open Token
 
 let message = function
