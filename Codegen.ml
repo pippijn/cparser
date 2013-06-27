@@ -130,7 +130,7 @@ let output_toplevel p pl =
         t KW_ASM;
         p "("; iter p code; p ")"; p ";";
 
-    | Nothing ->
+    | NoDecl ->
         ()
 
     | StructDeclarator _ as n ->

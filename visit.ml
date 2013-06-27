@@ -118,7 +118,7 @@ let iter_type { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
 let iter_decl { iter_type; iter_expr; iter_stmt; iter_decl } node =
   match node with
-  | Nothing -> ()
+  | NoDecl -> ()
   | TranslationUnit (decls) -> iter iter_decl decls
 
   (* Wildcards *)
@@ -260,7 +260,7 @@ let map_type { map_type; map_expr; map_stmt; map_decl } = function
 
 let map_decl { map_type; map_expr; map_stmt; map_decl } node =
   match node with
-  | Nothing -> node
+  | NoDecl -> node
   | TranslationUnit (decls) -> TranslationUnit (map map_decl decls)
 
   (* Wildcards *)
@@ -425,7 +425,7 @@ let fold_type { fold_type; fold_expr; fold_stmt; fold_decl } data node =
 
 let fold_decl { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   match node with
-  | Nothing -> data
+  | NoDecl -> data
   | TranslationUnit (decls) -> fold_left fold_decl data decls
 
   (* Wildcards *)

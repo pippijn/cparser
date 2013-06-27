@@ -261,7 +261,7 @@ and tcheck_decl env = function
       maybe_insert Csymtab.replace_decl decl;
 
       begin match untyped with
-      | Nothing ->
+      | NoDecl ->
           () (* Pure SUE declaration, no declarator. *)
       | untyped ->
           Csymtab.insert_decl (Decls.decl_name untyped) Symtab.Ordinary decl

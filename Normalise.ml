@@ -30,9 +30,9 @@ let normalise_unit =
   and normalise_decl = function
     | IdentifierDeclarator (trs, "") ->
         IdentifierDeclarator (trs, anon_id ())
-    | TypedDecl (trs, sc, (SUEType _ as ty), Nothing, asm, init) when Sclass.is_typedef sc ->
+    | TypedDecl (trs, sc, (SUEType _ as ty), NoDecl, asm, init) when Sclass.is_typedef sc ->
         normalise_decl (TypedDecl (trs, sc, ty, anon_decl (), asm, init))
-    | StructDeclarator (trs, TypedDecl (dtrs, sc, ty, Nothing, asm, init), bitfield) ->
+    | StructDeclarator (trs, TypedDecl (dtrs, sc, ty, NoDecl, asm, init), bitfield) ->
         normalise_decl (StructDeclarator (trs, TypedDecl (dtrs, sc, ty, anon_decl (), asm, init), bitfield))
 
     | n -> Visit.map_decl normalise_struct n
@@ -46,7 +46,7 @@ let normalise_unit =
         BasicType (Basic_type.of_list bts)
 
     (* XXX: not good
-    | SUEType (attrs, kind, tag, [Nothing]) ->
+    | SUEType (attrs, kind, tag, [NoDecl]) ->
         let single_char_decl =
           DeclaringList ([], [
             StructDeclarator ([],
@@ -54,7 +54,7 @@ let normalise_unit =
                 [], (* no storage classes *)
                 BasicType Char,
                 IdentifierDeclarator ([], anon_id ()),
-                Nothing, (* no asm *)
+                NoDecl, (* no asm *)
                 None (* no initialiser *)
               ),
             None (* no bitfield *)

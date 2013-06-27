@@ -27,7 +27,7 @@ let rec collect_globals globs = function
   | DeclaringList (_, decls) :: tl ->
       collect_globals (collect_globals globs decls) tl
   (* SUE declarations *)
-  | TypedDecl (_, _, SUEType _, Nothing, _, _) :: tl
+  | TypedDecl (_, _, SUEType _, NoDecl, _, _) :: tl
   (* Function declarations *)
   | TypedDecl (_, _, FunctionType (_, _), _, _, _) :: tl ->
       collect_globals globs tl

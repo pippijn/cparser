@@ -6,7 +6,7 @@
   let ast_from_opt opt =
     match opt with
     | Some e -> e
-    | None -> Nothing
+    | None -> NoDecl
 
   let stmt_from_opt opt =
     match opt with
@@ -50,7 +50,7 @@
   let default_int = PartialBasicType [BT_Default]
 
   let abstract_decl ty =
-    TypedDecl ([], Sclass.empty, ty, Nothing, Nothing, None)
+    TypedDecl ([], Sclass.empty, ty, NoDecl, NoDecl, None)
 
 #define LOC		[`Position ($startpos, $endpos)]
 #define ATTR(a, d)	(Traits.add_attrs (a) (d))
@@ -124,9 +124,9 @@ test
 
 external_definitions
 	: external_definition
-		{ match $1 with Nothing -> [] | e -> [$1] }
+		{ if $1 == NoDecl then [] else [$1] }
 	| external_definitions external_definition
-		{ match $2 with Nothing -> $1 | e -> $2 :: $1 }
+		{ if $2 == NoDecl then $1 else $2 :: $1 }
 	;
 
 
@@ -140,7 +140,7 @@ external_definition
 	| KW_ASM TK_LBRACK TK_STRING_LITERAL+ TK_RBRACK
 		{ ToplevelAsm (LOC, $3) }
 	| TK_SEMICOLON
-		{ Nothing }
+		{ NoDecl }
 	| TK_INCLUDE
 		{ PreprocessorDirective (LOC, "#include " ^ $1) }
 	| KW_EXTENSION external_definition
@@ -200,9 +200,9 @@ declaring_list
 	| declaration_specifier_nosue attribute+ declarator asm_declaration_specifier? attribute* decl_initialiser?
 		{ [ATTR ($2 @ $5, Decls.finish_decl (Decls.merge_decls $1 $3) (ast_from_opt $4) $6)] }
 	| type_specifier declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($4, Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, Nothing, Nothing, None)) $2) (ast_from_opt $3) $5)] }
+		{ [ATTR ($4, Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, NoDecl, NoDecl, None)) $2) (ast_from_opt $3) $5)] }
 	| type_specifier_nosue attribute+ declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($2 @ $5, Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, Nothing, Nothing, None)) $3) (ast_from_opt $4) $6)] }
+		{ [ATTR ($2 @ $5, Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, NoDecl, NoDecl, None)) $3) (ast_from_opt $4) $6)] }
 	| declaring_list TK_COMMA attribute* declarator asm_declaration_specifier? attribute* decl_initialiser?
 		{ ATTR ($3 @ $6, Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $4) (ast_from_opt $5) $7) :: $1 }
 	/* Error productions */
@@ -252,13 +252,13 @@ declaration_specifier_nosue
 	: basic_declaration_specifier	{ $1 }
 	| typedef_declaration_specifier	{ $1 }
 	| typeof_declaration_specifier	{ $1 }
-	| WC_TYPE			{ TypedDecl ([], Sclass.empty, WildcardType (LOC, $1), Nothing, Nothing, None) }
+	| WC_TYPE			{ TypedDecl ([], Sclass.empty, WildcardType (LOC, $1), NoDecl, NoDecl, None) }
 	;
 
 
 basic_declaration_specifier
 	: basic_type_specifier storage_class
-		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, Nothing, Nothing, None) }
+		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, NoDecl, NoDecl, None) }
 	| declaration_qualifier_list basic_type_name
 		{ Decls.add_basic_type $1 $2 }
 	| basic_declaration_specifier declaration_qualifier
@@ -270,7 +270,7 @@ basic_declaration_specifier
 
 sue_declaration_specifier
 	: sue_type_specifier storage_class
-		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, Nothing, Nothing, None) }
+		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, NoDecl, NoDecl, None) }
 	| declaration_qualifier_list elaborated_type_name
 		{ Decls.set_base_type $1 $2 }
 	| sue_declaration_specifier declaration_qualifier
@@ -280,7 +280,7 @@ sue_declaration_specifier
 
 typeof_declaration_specifier
 	: typeof_type_specifier storage_class
-		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, Nothing, Nothing, None) }
+		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, NoDecl, NoDecl, None) }
 	| declaration_qualifier_list typeof_type_name
 		{ Decls.set_base_type $1 $2 }
 	| typeof_declaration_specifier declaration_qualifier
@@ -290,7 +290,7 @@ typeof_declaration_specifier
 
 typedef_declaration_specifier
 	: typedef_type_specifier storage_class
-		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, Nothing, Nothing, None) }
+		{ TypedDecl (LOC, Sclass.add Sclass.empty $2, $1, NoDecl, NoDecl, None) }
 	| declaration_qualifier_list TK_TYPEDEF_NAME
 		{ Decls.set_base_type $1 (TypedefType $2) }
 	| typedef_declaration_specifier declaration_qualifier
@@ -300,9 +300,9 @@ typedef_declaration_specifier
 
 declaration_qualifier_list
 	: storage_class attribute*
-		{ ATTR ($2, TypedDecl (LOC, Sclass.add Sclass.empty $1, NoType, Nothing, Nothing, None)) }
+		{ ATTR ($2, TypedDecl (LOC, Sclass.add Sclass.empty $1, NoType, NoDecl, NoDecl, None)) }
 	| type_qualifier+ attribute* storage_class attribute*
-		{ ATTR ($2 @ $4, TypedDecl (LOC, Sclass.add Sclass.empty $3, Types.add_tqual NoType $1, Nothing, Nothing, None)) }
+		{ ATTR ($2 @ $4, TypedDecl (LOC, Sclass.add Sclass.empty $3, Types.add_tqual NoType $1, NoDecl, NoDecl, None)) }
 	| declaration_qualifier_list declaration_qualifier attribute*
 		{ ATTR ($3, Decls.add_dqual $1 $2) }
 	;
@@ -552,7 +552,7 @@ old_function_declarator
 
 postfix_old_function_declarator
 	: paren_identifier_declarator TK_LBRACK sep(TK_COMMA, simple_identifier_declarator) TK_RBRACK
-		{ TypedDecl (LOC, Sclass.empty, FunctionType (NoType, List.map (fun id -> Decls.set_base_type id default_int) $3), $1, Nothing, None) }
+		{ TypedDecl (LOC, Sclass.empty, FunctionType (NoType, List.map (fun id -> Decls.set_base_type id default_int) $3), $1, NoDecl, None) }
 	| TK_LBRACK attribute* old_function_declarator TK_RBRACK
 		{ ATTR ($2, $3) }
 	| TK_LBRACK attribute* old_function_declarator TK_RBRACK postfixing_abstract_declarator
@@ -647,7 +647,7 @@ parameter_type_list
 	/* Error productions */
 #if 0
 	| TK_ELLIPSIS
-		{ [SyntaxError ("first argument cannot be `...'", Nothing)] }
+		{ [SyntaxError ("first argument cannot be `...'", NoDecl)] }
 	| sep_rev(TK_COMMA, parameter_declaration) TK_COMMA error
 		{ [SyntaxError ("error after", List.hd params)] }
 #endif
@@ -1066,7 +1066,7 @@ statement
 	| expression_statement		{ $1 }
 	/* Error productions */
 #if 0
-	| error TK_SEMICOLON		{ SyntaxError (LOC, "error in statement", Nothing) }
+	| error TK_SEMICOLON		{ SyntaxError (LOC, "error in statement", NoDecl) }
 #endif
 
 statement_noexpr
@@ -1138,13 +1138,13 @@ iteration_statement
 	/* Error productions */
 #if 0
 	| KW_FOR TK_LBRACK error TK_SEMICOLON expression? TK_SEMICOLON expression? TK_RBRACK statement
-		{ ForStatement (SyntaxError ("invalid for-init-statement", Nothing), expr_from_opt $5, expr_from_opt $7, $9) }
+		{ ForStatement (SyntaxError ("invalid for-init-statement", NoDecl), expr_from_opt $5, expr_from_opt $7, $9) }
 	| KW_FOR TK_LBRACK expression? TK_SEMICOLON error TK_SEMICOLON expression? TK_RBRACK statement
-		{ ForStatement (expr_from_opt $3, SyntaxError ("invalid for-condition", Nothing), expr_from_opt $7, $9) }
+		{ ForStatement (expr_from_opt $3, SyntaxError ("invalid for-condition", NoDecl), expr_from_opt $7, $9) }
 	| KW_FOR TK_LBRACK expression? TK_SEMICOLON expression? TK_SEMICOLON error TK_RBRACK statement
-		{ ForStatement (expr_from_opt $3, expr_from_opt $5, SyntaxError ("invalid for-continue-statement", Nothing), $9) }
+		{ ForStatement (expr_from_opt $3, expr_from_opt $5, SyntaxError ("invalid for-continue-statement", NoDecl), $9) }
 	| KW_FOR TK_LBRACK error TK_RBRACK statement
-		{ ForStatement (Nothing, SyntaxError ("invalid form in for-statement", Literal (LIT_Dec, "0")), Nothing, $5) }
+		{ ForStatement (NoDecl, SyntaxError ("invalid form in for-statement", Literal (LIT_Dec, "0")), NoDecl, $5) }
 #endif
 
 
@@ -1212,7 +1212,7 @@ struct_declaration_list
 
 struct_declaration_list_opt
 	:
-		{ [Nothing] }
+		{ [NoDecl] }
 	| struct_declaration_list
 		{ List.rev $1 }
 	;
@@ -1234,7 +1234,7 @@ struct_declaring_list
 	| struct_declaring_list TK_COMMA struct_declarator
 		{ (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $3) :: $1 }
 	| struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE
-		{ [ATTR ($2, Decls.set_tspec (StructDeclarator (LOC, Nothing, None)) (SUEType (SUE_ATTR ($2), $1, "", $4)))] }
+		{ [ATTR ($2, Decls.set_tspec (StructDeclarator (LOC, NoDecl, None)) (SUEType (SUE_ATTR ($2), $1, "", $4)))] }
 	;
 
 
@@ -1242,7 +1242,7 @@ struct_declarator
 	: declarator bit_field_size? attribute*
 		{ StructDeclarator (LOC, ATTR ($3, $1), $2) }
 	| bit_field_size attribute*
-		{ StructDeclarator (LOC, Nothing, Some $1) }
+		{ StructDeclarator (LOC, NoDecl, Some $1) }
 	;
 
 

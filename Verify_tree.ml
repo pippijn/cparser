@@ -49,7 +49,7 @@ let rec verify_node c = function
   (*** DECLS ***)
 
   (* declarations *)
-  | TypedDecl (_, sclasses, declty, decl, Nothing, None) when Sclass.is_empty sclasses ->
+  | TypedDecl (_, sclasses, declty, decl, NoDecl, None) when Sclass.is_empty sclasses ->
       verify_type declty @
       opt_verify_declr c decl
   | TypedDecl (_, sclasses, declty, decl, asm, init) as node ->
@@ -87,11 +87,11 @@ and verify_declr c = function
 
 
 and opt_verify_asmdq = function
-  | Nothing -> []
+  | NoDecl -> []
   | n -> verify_asmdq n
 
 and opt_verify_declr c = function
-  | Nothing -> []
+  | NoDecl -> []
   | n -> verify_declr c n
 
 and opt_verify_stmt = function
@@ -264,7 +264,7 @@ and verify_type = function
   (*** STRUCT/UNION/ENUM ***)
 
   (* allow empty structs and unions *)
-  | SUEType (_, _, _, [Nothing]) -> []
+  | SUEType (_, _, _, [NoDecl]) -> []
 
   (* struct/union members *)
   | SUEType (_, (SUE_Union | SUE_Struct), _, members) ->

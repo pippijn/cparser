@@ -37,7 +37,7 @@ let rec add_pointer_type decl =
   match decl with
   | WildcardDecl _
   | IdentifierDeclarator _ ->
-      TypedDecl (Traits.copy_pos decl, Sclass.empty, PointerType (NoType), decl, Nothing, None)
+      TypedDecl (Traits.copy_pos decl, Sclass.empty, PointerType (NoType), decl, NoDecl, None)
   | TypedDecl (trs, sclasses, ty, decl, asm, init) ->
       TypedDecl (trs, sclasses, PointerType (ty), decl, asm, init)
   | _ -> die (Declaration_error ("add_pointer_type", None, [decl]))
@@ -101,11 +101,11 @@ let add_parameter_types fdecl decls =
 
 let rec set_base_type decl ty =
   match decl with
-  | Nothing ->
-      TypedDecl ([], Sclass.empty, ty, Nothing, Nothing, None)
+  | NoDecl ->
+      TypedDecl ([], Sclass.empty, ty, NoDecl, NoDecl, None)
   | WildcardDecl _
   | IdentifierDeclarator _ as decl ->
-      TypedDecl (Traits.copy_pos decl, Sclass.empty, ty, decl, Nothing, None)
+      TypedDecl (Traits.copy_pos decl, Sclass.empty, ty, decl, NoDecl, None)
   | TypedDecl (trs, sclasses, declty, untyped, asm, init) ->
       TypedDecl (trs, sclasses, Types.set_base_type ty declty, untyped, asm, init)
   | decl -> die (Declaration_error ("set_base_type", None, [decl]))
@@ -113,25 +113,25 @@ let rec set_base_type decl ty =
 
 let rec set_tspec decl spec =
   match decl with
-  | Nothing ->
-      TypedDecl ([], Sclass.empty, spec, decl, Nothing, None)
+  | NoDecl ->
+      TypedDecl ([], Sclass.empty, spec, decl, NoDecl, None)
   | WildcardDecl _
   | IdentifierDeclarator _ ->
-      TypedDecl (Traits.copy_pos decl, Sclass.empty, spec, decl, Nothing, None)
+      TypedDecl (Traits.copy_pos decl, Sclass.empty, spec, decl, NoDecl, None)
   | StructDeclarator (trs, sdecl, bitfield) ->
       StructDeclarator (trs, set_tspec sdecl spec, bitfield)
-  | TypedDecl (trs, sc, declty, untyped, Nothing, None) when Sclass.is_empty sc ->
-      TypedDecl (trs, Sclass.empty, Types.set_base_type spec declty, untyped, Nothing, None)
+  | TypedDecl (trs, sc, declty, untyped, NoDecl, None) when Sclass.is_empty sc ->
+      TypedDecl (trs, Sclass.empty, Types.set_base_type spec declty, untyped, NoDecl, None)
   | _ -> die (Declaration_error ("set_tspec", None, [decl]))
 
 
 let rec merge_decls spec decl =
   match spec with
   | TypedDecl (trs, sclasses, specty, IdentifierDeclarator (idtrs, ""), asm, init) ->
-      Traits.add_attrs [Attributes.attribute idtrs] (merge_decls (TypedDecl (trs, sclasses, specty, Nothing, asm, init)) decl)
-  | TypedDecl (trs, sclasses, specty, Nothing, asm, init) ->
+      Traits.add_attrs [Attributes.attribute idtrs] (merge_decls (TypedDecl (trs, sclasses, specty, NoDecl, asm, init)) decl)
+  | TypedDecl (trs, sclasses, specty, NoDecl, asm, init) ->
       begin match decl with
-      | TypedDecl (_, sc, declty, untyped, Nothing, None) when Sclass.is_empty sc ->
+      | TypedDecl (_, sc, declty, untyped, NoDecl, None) when Sclass.is_empty sc ->
           TypedDecl (trs, sclasses, Types.set_base_type specty declty, untyped, asm, init)
       | StructDeclarator (trs, sdecl, bitfield) ->
           StructDeclarator (trs, merge_decls spec sdecl, bitfield)
@@ -146,7 +146,7 @@ let rec merge_decls spec decl =
 let rec decl_base_type decl =
   match decl with
   | TypedDecl (trs, sclasses, declty, decl, asm, init) ->
-      TypedDecl (trs, sclasses, Types.base_type declty, Nothing, Nothing, None)
+      TypedDecl (trs, sclasses, Types.base_type declty, NoDecl, NoDecl, None)
   | StructDeclarator (_, sdecl, _) ->
       decl_base_type sdecl
   | _ -> die (Declaration_error ("unexpected type in decl_base_type", None, [decl]))
@@ -154,7 +154,7 @@ let rec decl_base_type decl =
 
 let finish_decl decl asm init =
   match decl with
-  | TypedDecl (trs, sclasses, declty, decl, Nothing, None) ->
+  | TypedDecl (trs, sclasses, declty, decl, NoDecl, None) ->
       let register =
         if Sclass.is_typedef sclasses then
           Lexer_hack.typedef

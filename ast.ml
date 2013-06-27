@@ -364,7 +364,7 @@ and ctype =
 (** {6 Declarations} *)
 
 and declaration =
-  | Nothing
+  | NoDecl
 
   | TranslationUnit of (*decls*)declaration list
   (** [TranslationUnit (decls)] *)

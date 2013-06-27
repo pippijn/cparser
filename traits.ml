@@ -104,7 +104,7 @@ let traits_of_type = function
 
 
 let traits_of_decl = function
-  | Nothing
+  | NoDecl
   | TranslationUnit (_) -> []
 
   (* Wildcards *)
@@ -144,7 +144,7 @@ let traits_of_decl = function
 
 let rec clear_deep_decl =
   let map = List.map in function
-  | Nothing -> Nothing
+  | NoDecl -> NoDecl
   | TranslationUnit (decls) -> TranslationUnit (map clear_deep_decl decls)
 
   (* Wildcards *)
@@ -313,7 +313,7 @@ let rec add_attrs = function
   | [] -> fun decl -> decl
   | attrs ->
       function
-      | Nothing ->
+      | NoDecl ->
           IdentifierDeclarator (Attributes.add_attribute (List.flatten attrs) [], "")
       | IdentifierDeclarator (trs, id) ->
           IdentifierDeclarator (Attributes.add_attribute (List.flatten attrs) trs, id)

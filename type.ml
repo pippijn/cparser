@@ -201,7 +201,7 @@ let rec sizeof = function
   | PointerType (FunctionType _) -> Platform.sizeof_function_pointer
   | PointerType _ -> Platform.sizeof_object_pointer
 
-  | SUEType (_, _, _, [Nothing]) ->
+  | SUEType (_, _, _, [NoDecl]) ->
       (* Empty structs are still 1 byte large. *)
       1
 
