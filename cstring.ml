@@ -52,7 +52,7 @@ let parse strlist =
 
   let add_uni num =
     try
-      add_string (Unicode.utf8_of_utf32 [num])
+      add_string (Unicode.utf8s_of_utf32 (Unicode.adopt_utf32 num) :> string)
     with Invalid_argument "uchar_of_int" ->
       raise (Invalid_argument (Printf.sprintf "universal character code out of range; value = %d" num))
   in
@@ -91,7 +91,7 @@ let parse strlist =
                 begin match c with
                 | '\\' -> len, EscapeStart
                 | c ->
-                    match Unicode.utf8_length (int_of_char c) with
+                    match Unicode.utf8_length c with
                     | 0 -> 
                         add_char c; len + 1, Initial
                     | cont ->

@@ -51,7 +51,6 @@ Modules[] =
 	Type
 	Typecheck
 	Types
-	Unicode
 	Verify_tree
 	Visit
 	Warn_globals
@@ -61,6 +60,7 @@ Modules[] =
 Requires[] =
 	merr
 	sexplib.syntax
+	ucs
 
 # Camlp4
 Flags. +=
