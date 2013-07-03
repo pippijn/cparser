@@ -1,5 +1,5 @@
 # Target
-Target		= cparse
+Name		= cparse
 
 # Sources
 Modules[] =
@@ -75,4 +75,4 @@ Flags. +=
 
 RUNMERR		= cparse.native -merr -
 
-program (.DEFAULT)
+program-install (.DEFAULT)
