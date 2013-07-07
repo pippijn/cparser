@@ -1,4 +1,4 @@
-open Prelude
+open CorePervasives
 
 (************************************************
  * Run all passes on the translation unit's AST *

@@ -1,5 +1,5 @@
 open Ast
-open Prelude
+open CorePervasives
 
 
 let rec is_link_time_constant = function

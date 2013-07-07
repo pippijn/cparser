@@ -39,7 +39,6 @@ install Program ".DEFAULT" [
     "Parse_util";
     "Platform";
     "Predicates";
-    "Prelude";
     "Printing";
     "Sclass";
     "Settings";

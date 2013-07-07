@@ -1,5 +1,5 @@
 open Ast
-open Prelude
+open CorePervasives
 open Tqual
 
 

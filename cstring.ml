@@ -1,3 +1,5 @@
+open Ucs
+
 type state =
   | Initial
   | EscapeStart
