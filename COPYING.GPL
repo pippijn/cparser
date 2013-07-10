@@ -1,6 +1,12 @@
-This project is licenced under the GNU General Public Licence version 3.0 or
-later, and the contained files are so, unless stated otherwise. A copy of this
-licence can be obtained from http://opensource.org/licenses/GPL-3.0.
+This project and all the files contained in it are licensed under the
+  GNU General Public License version 3.0 or later,
+unless stated otherwise. A copy of this license can be obtained from
+  http://opensource.org/licenses/GPL-3.0.
+
+If this project comprises a code generation tool, the generated code is
+licensed under the Mozilla Public License version 2.0, a copy of which can be
+obtained from
+  http://opensource.org/licenses/MPL-2.0.
 
 Authors:
 	Pippijn van Steenhoven <pip88nl@gmail.com>
