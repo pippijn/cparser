@@ -59,7 +59,7 @@ install Program ".DEFAULT" [
 
   (* Library dependencies *)
   OCamlRequires [
-    "merr";
+    "libmerr";
     "sexplib.syntax";
     "ucs";
   ];
