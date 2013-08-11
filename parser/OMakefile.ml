@@ -1,6 +1,8 @@
-install Program ".DEFAULT" [
+install Library ".DEFAULT" [
   (* Target *)
-  Name		"cparse";
+  Name		"cparser";
+  Description	"C parser for OCaml";
+  Version	"0.1";
 
   (* Sources *)
   Modules [
@@ -28,7 +30,6 @@ install Program ".DEFAULT" [
     "ExString";
     "ExUTF8";
     "Fcc";
-    "Fcc1";
     "Frontend";
     "Initialiser";
     "Lexer_hack";
@@ -76,5 +77,5 @@ install Program ".DEFAULT" [
     "sclass.ml",	"-syntax camlp4o";
   ];
 
-  Var ("RUNMERR", "cparse.native -merr -");
+  Var ("RUNMERR", "fcc1.native -merr -");
 ]
