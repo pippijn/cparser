@@ -111,11 +111,38 @@ let create () =
 
 let print string_of_decl symtab =
   assert (List.length symtab.stack = 1);
-  Hashtbl.iter (fun scope_name scope ->
-    if Hashtbl.length scope > 0 then begin
+  let tables =
+    Hashtbl.fold (fun scope_name scope tables ->
+      let scope =
+        Hashtbl.fold (fun sym decl scope ->
+          (sym, decl) :: scope
+        ) scope []
+      in
+
+      let scope =
+        List.sort (fun ((a, _), _) ((b, _), _) ->
+          String.compare a b
+        ) scope
+      in
+
+      (scope_name, scope) :: tables
+    ) symtab.tables []
+  in
+
+  let tables =
+    List.sort (fun (a, _) (b, _) ->
+      String.compare a b
+    ) tables
+  in
+
+  List.iter (fun (scope_name, scope) ->
+    if scope <> [] then (
       Printf.printf "scope %s:\n" scope_name;
-      Hashtbl.iter (fun (decl_name, symtype) decl ->
-        Printf.printf " - %s(%s): %s\n" decl_name (string_of_symtype symtype) (string_of_decl decl)
+      List.iter (fun ((decl_name, symtype), decl) ->
+        Printf.printf " - %s(%s): %s\n"
+          decl_name
+          (string_of_symtype symtype)
+          (string_of_decl decl)
       ) scope
-    end
-  ) symtab.tables
+    )
+  ) tables

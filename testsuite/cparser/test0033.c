@@ -1,0 +1,2 @@
+int *arr[];
+int (*arr)[];

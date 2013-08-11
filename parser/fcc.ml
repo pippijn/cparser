@@ -43,12 +43,12 @@ type result =
 
 (* Preprocessor flags *)
 let cppflags =
-  "-I/home/pippijn/code/git/devel/obuild/src/lang/cparser " ^
-  "-include builtin.h " ^
+  "-I/home/pippijn/code/git/devel/obuild/src/lang/cparser/parser " ^
   "-I/home/pippijn/code/git/lang/aldor/include " ^
   "-I/home/pippijn/code/git/lang/aldor/_build " ^
   "-I/home/pippijn/code/git/lang/aldor/_build/include " ^
   "-I/usr/local/include/csmith-2.1.0 " ^
+  "-include builtin.h " ^
   "-DHAVE_CONFIG_H " ^
   "-DPKGLIBEXECDIR='\"/usr/local/libexec/aldor-compiler\"'"
 
