@@ -77,5 +77,7 @@ install Library ".DEFAULT" [
     "sclass.ml",	"-syntax camlp4o";
   ];
 
-  Var ("RUNMERR", "fcc1.native -merr -");
+  Var ("RUNMERR", "$(bindir)/fcc1.native -merr -");
+
+  Rule ("c_errors.ml", "builtin.h", []);
 ]

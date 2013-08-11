@@ -7,7 +7,7 @@ let lang =
   match Url.Current.get_fragment () with
   | "hm" -> HindleyMilner
   | "c"  -> C
-  | _ -> HindleyMilner
+  | _ -> C
 
 
 let () =
