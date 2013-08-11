@@ -28,7 +28,7 @@ install Program ".DEFAULT" [
   Var ("OCAML_NATIVE", "false");
 
   Rule (".PHONY", "upload", []);
-  Rule ("upload", "$(Name).js index.html missing.js", [
+  Rule ("upload", "$(Name).js missing.js", [
     "chmod 644 $^";
     "scp $^ $'ra:public_html/files/up/parser/'";
   ]);

@@ -1,0 +1,48 @@
+<h2 id="title">Loading parser...</h2>
+
+<style>
+   #left {
+      float: left;
+      width: 50%;
+   }
+   #right {
+      float: right;
+      width: 50%;
+   }
+   #bottom {
+      clear: both;
+   }
+
+   textarea {
+      width: 90%;
+   }
+</style>
+
+<p>
+   <em>
+      This parser is unstable and may stop working for no apparent reason.
+      Reload the page when that happens. It may take a while to load the
+      JavaScript code on slow connections.
+   </em>
+</p>
+
+<script type="text/javascript" src="http://xinutec.org/~pippijn/files/up/parser/missing.js"></script>
+<script type="text/javascript" src="http://xinutec.org/~pippijn/files/up/parser/fcc_js.js"></script>
+
+<div>
+   <div id="left">
+      <h3 id="code_title">Code</h3>
+      <textarea id="input" rows="20">3</textarea>
+   </div>
+   <div id="right">
+      <h3 id="missing_title">Extra info</h3>
+      <textarea id="missing" rows="20"></textarea>
+   </div>
+</div>
+<div id="bottom">
+   <pre id="error"></pre>
+   <h3 id="sexp_title">Parse tree</h3>
+   <pre id="sexp"></pre>
+   <h3 id="output_title">Deparsed</h3>
+   <pre id="output"></pre>
+</div>
