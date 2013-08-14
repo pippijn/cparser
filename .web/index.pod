@@ -6,4 +6,4 @@ well as static analyses.
 
 L<Try it out|online> in your browser.
 
-L<Git repository|https://github.com/pippijn/cparseparse>
+L<Git repository|https://github.com/pippijn/cparser>
