@@ -12,14 +12,84 @@ function caml_weak_create () { console.debug ("caml_weak_create", arguments); re
 function caml_weak_get () { console.debug ("caml_weak_get", arguments); return 6; }
 function caml_weak_set () { console.debug ("caml_weak_set", arguments); return 7; }
 function caml_weak_blit () { console.debug ("caml_weak_blit", arguments); return 8; }
-function create_nat () { console.debug ("create_nat", arguments); return 9; }
+function unix_error_message () { console.debug ("unix_error_message", arguments); return 15; }
+function unix_inet_addr_of_string () { console.debug ("unix_inet_addr_of_string", arguments); return 16; }
+function is_digit_int () { console.debug ("is_digit_int", arguments); return 0; }
+
+function create_nat (size) {
+   console.debug ("create_nat", size);
+   var array = [];
+   array[size - 1] = 0;
+   return array;
+}
+
+function set_to_zero_nat (nat, ofs, len) {
+   console.debug ("set_to_zero_nat", nat, ofs, len);
+   for (var i = 0; i < len; i++) {
+      nat[ofs + i] = 0;
+   }
+}
+
+function div_digit_nat (natq, ofsq, natr, ofsr, nat1, ofs1, len1, nat2, ofs2) {
+   console.debug ("div_digit_nat", natq, ofsq, natr, ofsr, nat1, ofs1, len1, nat2, ofs2);
+}
+
+function nth_digit_nat (nat, ofs) {
+   console.debug ("nth_digit_nat", nat, ofs);
+   return nat[ofs];
+}
+
+function is_digit_zero (nat, ofs) {
+   console.debug ("is_digit_zero", nat, ofs);
+   return nat[ofs] == 0;
+}
+
+function set_digit_nat (nat, ofs, digit) {
+   console.debug ("set_digit_nat", nat, ofs, digit);
+   nat[ofs] = digit;
+}
+
+function blit_nat (nat1, ofs1, nat2, ofs2, len) {
+   console.debug ("blit_nat", nat1, ofs1, nat2, ofs2, len);
+   for (var i = 0; i < len; i++) {
+      nat1[i + ofs1] = nat2[i + ofs2];
+   }
+}
+
+function num_digits_nat (nat) {
+   console.debug ("num_digits_nat", nat);
+
+   var count = 0;
+   for (var i = 0; i < nat.length; i++) {
+      if (nat[i] != 0) {
+         count++;
+      }
+   }
+
+   return count;
+}
+
+function compare_nat (nat1, nat2) {
+   if (nat1.length < nat2.length) {
+      return -1;
+   }
+   if (nat1.length > nat2.length) {
+      return 1;
+   }
+
+   for (var i = 0; i < nat1.length; i++) {
+      var diff = nat1[i] - nat2[i];
+      if (diff != 0) {
+         return diff;
+      }
+   }
+
+   return 0;
+}
+
 function incr_nat () { console.debug ("incr_nat", arguments); return 10; }
 function initialize_nat () { console.debug ("initialize_nat", arguments); return 11; }
 function mult_digit_nat () { console.debug ("mult_digit_nat", arguments); return 12; }
-function set_digit_nat () { console.debug ("set_digit_nat", arguments); return 13; }
-function set_to_zero_nat () { console.debug ("set_to_zero_nat", arguments); return 14; }
-function unix_error_message () { console.debug ("unix_error_message", arguments); return 15; }
-function unix_inet_addr_of_string () { console.debug ("unix_inet_addr_of_string", arguments); return 16; }
 
 
 function char (code) {
