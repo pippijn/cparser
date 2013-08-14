@@ -1,10 +1,11 @@
-install Program ".DEFAULT" [
+install Library ".DEFAULT" [
   (* Target *)
-  Name		"ide";
+  Name		"gtk_intf";
+  Description	"GTK+ interface to DynParse";
+  Version	"0.1";
 
   (* Sources *)
   Modules [
-    "Ide";
     "Ide_interface";
     "Ide_ui";
     "Ide_updater";
@@ -12,8 +13,6 @@ install Program ".DEFAULT" [
 
   (* Library dependencies *)
   OCamlRequires [
-    "cparser";
-    "hm";
     "lablgtk2.glade";
     "lablgtksourceview2.gtksourceview2";
   ];
