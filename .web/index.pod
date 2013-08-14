@@ -1,3 +1,9 @@
 =head1 C Parser
 
+This is a clean C parser written from scratch in OCaml. It aims to provide a
+fully type-checked C parse tree, useful for source to source transformations as
+well as static analyses.
+
 L<Try it out|online> in your browser.
+
+L<Git repository|https://github.com/pippijn/cparseparse>
