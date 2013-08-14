@@ -68,7 +68,7 @@ let message = function
   | "f(){i" -> function
       | EOF			-> "expected ';' after declaration"
       | TK_IDENTIFIER		-> "declaring type of '%s' is not defined"
-      | _			-> default
+      | _			-> "expected ';' before '%s'"
 
   | "f(){i:" -> function
       | EOF			-> "expected statement after label"
