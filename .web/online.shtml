@@ -32,7 +32,7 @@
 </div>
 <div id="right">
    <h3 id="missing_title">Extra info</h3>
-   <textarea id="missing" rows="20"></textarea>
+   <textarea id="missing" rows="20" readonly="readonly"></textarea>
 </div>
 
 <pre id="error"></pre>
