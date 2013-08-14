@@ -177,7 +177,7 @@ and clear_deep_expr =
   | WildcardExpr (trs, wc) -> WildcardExpr ([], wc)
 
   (* Expression with type information *)
-  | TypedExpression (ty, value, expr) as node -> node
+  | TypedExpression (ty, value, expr) -> TypedExpression (clear_deep_type ty, value, clear_deep_expr expr)
 
   (* Expression *)
   | TernaryExpression (trs, op, cond, then_expr, else_expr) -> TernaryExpression ([], op, clear_deep_expr cond, opt clear_deep_expr then_expr, clear_deep_expr else_expr)
