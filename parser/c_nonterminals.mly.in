@@ -52,9 +52,12 @@
   let abstract_decl ty =
     TypedDecl ([], Sclass.empty, ty, NoDecl, NoDecl, None)
 
+  let attr = Traits.add_attrs
+
+  let sue_attr attrs loc =
+    Attributes.add_attribute (List.flatten attrs) loc
+
 #define LOC		[`Position ($startpos, $endpos)]
-#define ATTR(a, d)	(Traits.add_attrs (a) (d))
-#define SUE_ATTR(attrs)	Attributes.add_attribute (List.flatten attrs) LOC
 %}
 
 %nonassoc KW_IF
@@ -132,11 +135,11 @@ external_definitions
 
 external_definition
 	: attribute* declaration
-		{ ATTR ($1, $2) }
+		{ attr $1 $2 }
 	| attribute* default_toplevel_declaring_list TK_SEMICOLON
-		{ ATTR ($1, DeclaringList (LOC, List.rev $2)) }
+		{ attr $1 (DeclaringList (LOC, List.rev $2)) }
 	| attribute* function_definition
-		{ ATTR ($1, $2) }
+		{ attr $1 $2 }
 	| KW_ASM TK_LBRACK TK_STRING_LITERAL+ TK_RBRACK
 		{ ToplevelAsm (LOC, $3) }
 	| TK_SEMICOLON
@@ -186,25 +189,25 @@ declaration
 	| declaration_specifier identifier_declarator compound_statement
 		{ FunctionDefinition (LOC, Decls.merge_decls $1 $2, $3) }
 	| declaration_specifier_nosue attribute+ identifier_declarator compound_statement
-		{ ATTR ($2, FunctionDefinition (LOC, Decls.merge_decls $1 $3, $4)) }
+		{ attr $2 (FunctionDefinition (LOC, Decls.merge_decls $1 $3, $4)) }
 	| type_specifier identifier_declarator compound_statement
 		{ FunctionDefinition (LOC, Decls.set_base_type $2 $1, $3) }
 	| type_specifier_nosue attribute+ identifier_declarator compound_statement
-		{ ATTR ($2, FunctionDefinition (LOC, Decls.set_base_type $3 $1, $4)) }
+		{ attr $2 (FunctionDefinition (LOC, Decls.set_base_type $3 $1, $4)) }
 	;
 
 
 declaring_list
 	: declaration_specifier declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($4, Decls.finish_decl (Decls.merge_decls $1 $2) (ast_from_opt $3) $5)] }
+		{ [attr $4 (Decls.finish_decl (Decls.merge_decls $1 $2) (ast_from_opt $3) $5)] }
 	| declaration_specifier_nosue attribute+ declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($2 @ $5, Decls.finish_decl (Decls.merge_decls $1 $3) (ast_from_opt $4) $6)] }
+		{ [attr ($2 @ $5) (Decls.finish_decl (Decls.merge_decls $1 $3) (ast_from_opt $4) $6)] }
 	| type_specifier declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($4, Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, NoDecl, NoDecl, None)) $2) (ast_from_opt $3) $5)] }
+		{ [attr $4 (Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, NoDecl, NoDecl, None)) $2) (ast_from_opt $3) $5)] }
 	| type_specifier_nosue attribute+ declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($2 @ $5, Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, NoDecl, NoDecl, None)) $3) (ast_from_opt $4) $6)] }
+		{ [attr ($2 @ $5) (Decls.finish_decl (Decls.merge_decls (TypedDecl (LOC, Sclass.empty, $1, NoDecl, NoDecl, None)) $3) (ast_from_opt $4) $6)] }
 	| declaring_list TK_COMMA attribute* declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ ATTR ($3 @ $6, Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $4) (ast_from_opt $5) $7) :: $1 }
+		{ attr ($3 @ $6) (Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $4) (ast_from_opt $5) $7) :: $1 }
 	/* Error productions */
 #if 0
 	| declaration_specifier error asm_declaration_specifier? attribute* decl_initialiser?
@@ -218,11 +221,11 @@ declaring_list
 
 default_declaring_list
 	: declaration_qualifier_list default_int identifier_declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($5, Decls.finish_decl (Decls.merge_decls (Decls.set_base_type $1 $2) $3) (ast_from_opt $4) $6)] }
+		{ [attr $5 (Decls.finish_decl (Decls.merge_decls (Decls.set_base_type $1 $2) $3) (ast_from_opt $4) $6)] }
 	| type_qualifier+ default_int identifier_declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($5, Decls.finish_decl (Decls.set_base_type $3 (Types.add_tqual $2 $1)) (ast_from_opt $4) $6)] }
+		{ [attr $5 (Decls.finish_decl (Decls.set_base_type $3 (Types.add_tqual $2 $1)) (ast_from_opt $4) $6)] }
 	| default_declaring_list TK_COMMA attribute* identifier_declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ ATTR ($3 @ $6, Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $4) (ast_from_opt $5) $7) :: $1 }
+		{ attr ($3 @ $6) (Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $4) (ast_from_opt $5) $7) :: $1 }
 	/* Error productions */
 #if 0
 	| declaration_qualifier_list error attribute* decl_initialiser?
@@ -236,9 +239,9 @@ default_declaring_list
 
 default_toplevel_declaring_list
 	: default_int identifier_declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ [ATTR ($4, Decls.finish_decl (Decls.set_base_type $2 $1) (ast_from_opt $3) $5)] }
+		{ [attr $4 (Decls.finish_decl (Decls.set_base_type $2 $1) (ast_from_opt $3) $5)] }
 	| default_toplevel_declaring_list TK_COMMA identifier_declarator asm_declaration_specifier? attribute* decl_initialiser?
-		{ ATTR ($5, Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $3) (ast_from_opt $4) $6) :: $1 }
+		{ attr $5 (Decls.finish_decl (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $3) (ast_from_opt $4) $6) :: $1 }
 	;
 
 
@@ -300,11 +303,11 @@ typedef_declaration_specifier
 
 declaration_qualifier_list
 	: storage_class attribute*
-		{ ATTR ($2, TypedDecl (LOC, Sclass.add Sclass.empty $1, NoType, NoDecl, NoDecl, None)) }
+		{ attr $2 (TypedDecl (LOC, Sclass.add Sclass.empty $1, NoType, NoDecl, NoDecl, None)) }
 	| type_qualifier+ attribute* storage_class attribute*
-		{ ATTR ($2 @ $4, TypedDecl (LOC, Sclass.add Sclass.empty $3, Types.add_tqual NoType $1, NoDecl, NoDecl, None)) }
+		{ attr ($2 @ $4) (TypedDecl (LOC, Sclass.add Sclass.empty $3, Types.add_tqual NoType $1, NoDecl, NoDecl, None)) }
 	| declaration_qualifier_list declaration_qualifier attribute*
-		{ ATTR ($3, Decls.add_dqual $1 $2) }
+		{ attr $3 (Decls.add_dqual $1 $2) }
 	;
 
 
@@ -397,23 +400,23 @@ paren_typedef_declarator
 	: paren_postfix_typedef_declarator
 		{ $1 }
 	| TK_STAR attribute* paren_typedef_declarator
-		{ ATTR ($2, Decls.add_pointer_type $3) }
+		{ attr $2 (Decls.add_pointer_type $3) }
 	| TK_STAR attribute* TK_LBRACK attribute* simple_paren_typedef_declarator TK_RBRACK
-		{ ATTR ($2 @ $4, Decls.add_pointer_type $5) }
+		{ attr ($2 @ $4) (Decls.add_pointer_type $5) }
 	| TK_STAR attribute* pointer_type_qualifier+ TK_LBRACK attribute* simple_paren_typedef_declarator TK_RBRACK
-		{ ATTR ($2 @ $5, Decls.add_tqual (Decls.add_pointer_type $6) $3) }
+		{ attr ($2 @ $5) (Decls.add_tqual (Decls.add_pointer_type $6) $3) }
 	| TK_STAR attribute* pointer_type_qualifier+ paren_typedef_declarator
-		{ ATTR ($2, Decls.add_tqual (Decls.add_pointer_type $4) $3) }
+		{ attr $2 (Decls.add_tqual (Decls.add_pointer_type $4) $3) }
 	;
 
 
 paren_postfix_typedef_declarator
 	: TK_LBRACK attribute* paren_typedef_declarator TK_RBRACK
-		{ ATTR ($2, $3) }
+		{ attr $2 $3 }
 	| TK_LBRACK attribute* simple_paren_typedef_declarator postfixing_abstract_declarator TK_RBRACK
-		{ ATTR ($2, Decls.set_base_type $3 $4) }
+		{ attr $2 (Decls.set_base_type $3 $4) }
 	| TK_LBRACK attribute* paren_typedef_declarator TK_RBRACK postfixing_abstract_declarator
-		{ ATTR ($2, Decls.set_base_type $3 $5) }
+		{ attr $2 (Decls.set_base_type $3 $5) }
 	;
 
 
@@ -421,7 +424,7 @@ simple_paren_typedef_declarator
 	: simple_typedef_declarator
 		{ $1 }
 	| TK_LBRACK attribute* simple_paren_typedef_declarator TK_RBRACK
-		{ ATTR ($2, $3) }
+		{ attr $2 $3 }
 	;
 
 
@@ -445,17 +448,17 @@ clean_typedef_declarator
 	: clean_postfix_typedef_declarator
 		{ $1 }
 	| TK_STAR attribute* parameter_typedef_declarator
-		{ ATTR ($2, Decls.set_base_type $3 (PointerType (NoType))) }
+		{ attr $2 (Decls.set_base_type $3 (PointerType (NoType))) }
 	| TK_STAR attribute* pointer_type_qualifier+ parameter_typedef_declarator
-		{ ATTR ($2, Decls.set_base_type $4 (Types.add_tqual (PointerType (NoType)) $3)) }
+		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (PointerType (NoType)) $3)) }
 	;
 
 
 clean_postfix_typedef_declarator
 	: TK_LBRACK attribute* clean_typedef_declarator TK_RBRACK
-		{ ATTR ($2, $3) }
+		{ attr $2 $3 }
 	| TK_LBRACK attribute* clean_typedef_declarator TK_RBRACK postfixing_abstract_declarator
-		{ ATTR ($2, Decls.set_base_type $3 $5) }
+		{ attr $2 (Decls.set_base_type $3 $5) }
 	;
 
 
@@ -508,9 +511,9 @@ unary_identifier_declarator
 	: postfix_identifier_declarator
 		{ $1 }
 	| TK_STAR attribute* identifier_declarator
-		{ ATTR ($2, Decls.set_base_type $3 (PointerType (NoType))) }
+		{ attr $2 (Decls.set_base_type $3 (PointerType (NoType))) }
 	| TK_STAR attribute* pointer_type_qualifier+ identifier_declarator
-		{ ATTR ($2, Decls.set_base_type $4 (Types.add_tqual (PointerType (NoType)) $3)) }
+		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (PointerType (NoType)) $3)) }
 	;
 
 
@@ -518,9 +521,9 @@ postfix_identifier_declarator
 	: paren_identifier_declarator postfixing_abstract_declarator
 		{ Decls.set_base_type $1 $2 }
 	| TK_LBRACK attribute* unary_identifier_declarator TK_RBRACK
-		{ ATTR ($2, $3) }
+		{ attr $2 $3 }
 	| TK_LBRACK attribute* unary_identifier_declarator TK_RBRACK postfixing_abstract_declarator
-		{ ATTR ($2, Decls.set_base_type $3 $5) }
+		{ attr $2 (Decls.set_base_type $3 $5) }
 	;
 
 
@@ -528,7 +531,7 @@ paren_identifier_declarator
 	: simple_identifier_declarator
 		{ $1 }
 	| TK_LBRACK attribute* paren_identifier_declarator TK_RBRACK
-		{ ATTR ($2, $3) }
+		{ attr $2 $3 }
 	| WC_DECL
 		{ WildcardDecl (LOC, $1) }
 	;
@@ -544,9 +547,9 @@ old_function_declarator
 	: postfix_old_function_declarator
 		{ $1 }
 	| TK_STAR attribute* old_function_declarator
-		{ ATTR ($2, Decls.set_base_type $3 (PointerType (NoType))) }
+		{ attr $2 (Decls.set_base_type $3 (PointerType (NoType))) }
 	| TK_STAR attribute* pointer_type_qualifier+ old_function_declarator
-		{ ATTR ($2, Decls.set_base_type $4 (Types.add_tqual (PointerType (NoType)) $3)) }
+		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (PointerType (NoType)) $3)) }
 	;
 
 
@@ -554,9 +557,9 @@ postfix_old_function_declarator
 	: paren_identifier_declarator TK_LBRACK sep(TK_COMMA, simple_identifier_declarator) TK_RBRACK
 		{ TypedDecl (LOC, Sclass.empty, FunctionType (NoType, List.map (fun id -> Decls.set_base_type id default_int) $3), $1, NoDecl, None) }
 	| TK_LBRACK attribute* old_function_declarator TK_RBRACK
-		{ ATTR ($2, $3) }
+		{ attr $2 $3 }
 	| TK_LBRACK attribute* old_function_declarator TK_RBRACK postfixing_abstract_declarator
-		{ ATTR ($2, Decls.set_base_type $3 $5) }
+		{ attr $2 (Decls.set_base_type $3 $5) }
 	;
 
 
@@ -668,29 +671,29 @@ parameter_declaration_noattr
 	| declaration_specifier abstract_declarator
 		{ Decls.merge_decls $1 (abstract_decl $2) }
 	| declaration_specifier identifier_declarator attribute*
-		{ ATTR ($3, Decls.merge_decls $1 $2) }
+		{ attr $3 (Decls.merge_decls $1 $2) }
 	| declaration_specifier parameter_typedef_declarator attribute*
-		{ ATTR ($3, Decls.merge_decls $1 $2) }
+		{ attr $3 (Decls.merge_decls $1 $2) }
 	| declaration_qualifier_list default_int
 		{ Decls.set_base_type $1 $2 }
 	| declaration_qualifier_list default_int abstract_declarator
 		{ Decls.set_base_type (Decls.merge_decls $1 (abstract_decl $3)) $2 }
 	| declaration_qualifier_list default_int identifier_declarator attribute*
-		{ ATTR ($4, Decls.set_base_type (Decls.merge_decls $1 $3) $2) }
+		{ attr $4 (Decls.set_base_type (Decls.merge_decls $1 $3) $2) }
 	| type_specifier
 		{ abstract_decl $1 }
 	| type_specifier abstract_declarator
 		{ abstract_decl (Types.set_base_type $1 $2) }
 	| type_specifier identifier_declarator attribute*
-		{ ATTR ($3, Decls.set_tspec $2 $1) }
+		{ attr $3 (Decls.set_tspec $2 $1) }
 	| type_specifier parameter_typedef_declarator attribute*
-		{ ATTR ($3, Decls.set_tspec $2 $1) }
+		{ attr $3 (Decls.set_tspec $2 $1) }
 	| type_qualifier+ default_int
 		{ abstract_decl (Types.add_tqual $2 $1) }
 	| type_qualifier+ default_int abstract_declarator
 		{ abstract_decl (Types.set_base_type (Types.add_tqual $2 $1) $3) }
 	| type_qualifier+ default_int identifier_declarator attribute*
-		{ ATTR ($4, Decls.set_tspec $3 (Types.add_tqual $2 $1)) }
+		{ attr $4 (Decls.set_tspec $3 (Types.add_tqual $2 $1)) }
 	;
 
 
@@ -1084,7 +1087,7 @@ statement_or_declaration
 	: statement
 		{ $1 }
 	| KW_EXTENSION? attribute* declaration
-		{ DeclarationStatement (ATTR ($2, $3)) }
+		{ DeclarationStatement (attr $2 $3) }
 	;
 
 
@@ -1162,11 +1165,11 @@ jump_statement
 
 struct_or_union_specifier
 	: struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE attribute*
-		{ SUEType (SUE_ATTR ($2), $1, "", $4) }
+		{ SUEType (sue_attr $2 LOC, $1, "", $4) }
 	| struct_or_union attribute* identifier_or_typedef_name attribute*
-		{ SUEType (SUE_ATTR ($2), $1, $3, []) }
+		{ SUEType (sue_attr $2 LOC, $1, $3, []) }
 	| struct_or_union attribute* identifier_or_typedef_name attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE attribute*
-		{ SUEType (SUE_ATTR ($2), $1, $3, $6) }
+		{ SUEType (sue_attr $2 LOC, $1, $3, $6) }
 	;
 
 
@@ -1230,17 +1233,17 @@ struct_declaring_list
 	: type_specifier struct_declarator
 		{ [Decls.set_tspec $2 $1] }
 	| type_specifier_nosue attribute+ struct_declarator
-		{ [ATTR ($2, Decls.set_tspec $3 $1)] }
+		{ [attr $2 (Decls.set_tspec $3 $1)] }
 	| struct_declaring_list TK_COMMA struct_declarator
 		{ (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $3) :: $1 }
 	| struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE
-		{ [ATTR ($2, Decls.set_tspec (StructDeclarator (LOC, NoDecl, None)) (SUEType (SUE_ATTR ($2), $1, "", $4)))] }
+		{ [attr $2 (Decls.set_tspec (StructDeclarator (LOC, NoDecl, None)) (SUEType (sue_attr $2 LOC, $1, "", $4)))] }
 	;
 
 
 struct_declarator
 	: declarator bit_field_size? attribute*
-		{ StructDeclarator (LOC, ATTR ($3, $1), $2) }
+		{ StructDeclarator (LOC, attr $3 $1, $2) }
 	| bit_field_size attribute*
 		{ StructDeclarator (LOC, NoDecl, Some $1) }
 	;
@@ -1248,7 +1251,7 @@ struct_declarator
 
 struct_identifier_declarator
 	: default_int identifier_declarator bit_field_size? attribute*
-		{ Decls.set_tspec (StructDeclarator (LOC, ATTR ($4, $2), $3)) $1 }
+		{ Decls.set_tspec (StructDeclarator (LOC, attr $4 $2, $3)) $1 }
 	;
 
 
