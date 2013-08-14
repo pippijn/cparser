@@ -58,6 +58,6 @@ let string_type length kind chars =
     Some (
       TypedExpression (
         Platform.size_t,
-        Constant.IntValue (Big_int.big_int_of_int length),
+        Constant.IntValue (Mach_int.mach_int_of_int length),
         IntegerLiteral (Traits.empty_position, LIT_Dec, string_of_int length, None))),
     BasicType bt)

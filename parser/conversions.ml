@@ -84,7 +84,7 @@ let binary a b =
                 let open Constant in
                 match evalue with
                 | IntValue i ->
-                    FloatValue (Big_int.float_of_big_int i)
+                    FloatValue (Mach_int.float_of_mach_int i)
                 | _ -> failwith "conversion"
               else
                 evalue

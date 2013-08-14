@@ -60,19 +60,22 @@ let string_of_pos pos =
 
 let parse wcols code sexp output error missing =
   begin try
+
     Csymtab.reset ();
     let tu = parse_string code in
 
+    sexp (Sexplib.Sexp.to_string_hum (Ast.sexp_of_declaration (Traits.clear_deep_decl tu)));
+    output (Codegen.code_of_unit tu);
+
     let tu =
-      if false then
+      if not Mach_int.is_big then
         Frontend.run_passes tu
       else
         tu
     in
 
     sexp (Sexplib.Sexp.to_string_hum (Ast.sexp_of_declaration (Traits.clear_deep_decl tu)));
-
-    output (Codegen.code_of_unit tu)
+    output (Codegen.code_of_unit tu);
 
   with
   | C_lexer.Lexing_error (pos, c) ->
@@ -95,9 +98,9 @@ let parse wcols code sexp output error missing =
             let pos = string_of_pos (fst (pos_of expr)) in
             Printf.sprintf "%s: %s" pos (wrap (String.length pos) wcols msg)
         | exprs ->
-            Printf.sprintf "%s\nexpressions involved:%s" msg (List.fold_left (fun msg expr ->
+            Printf.sprintf "%s%s" msg (List.fold_left (fun msg expr ->
               let pos = string_of_pos (fst (pos_of expr)) in
-              Printf.sprintf "%s\n%s: %s" msg pos (code_of expr)
+              Printf.sprintf "%s\n- %s: %s" msg pos (code_of expr)
             ) "" exprs)
       in
 

@@ -34,6 +34,7 @@ install Library ".DEFAULT" [
     "Initialiser";
     "Lexer_hack";
     "Location";
+    "Mach_int";
     "Normalise";
     "Operator";
     "Option";

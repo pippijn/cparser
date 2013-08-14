@@ -1,5 +1,5 @@
 open Ast
-open Big_int
+open Mach_int
 
 
 let value_of = Type.value_of
@@ -379,7 +379,7 @@ and tcheck_expr env untyped =
         try
           Csymtab.lookup_decl id Symtab.Ordinary
         with Not_found ->
-          die (Expression_error ("identifier not declared in this scope", Some "6.2.1p2", [n]))
+          die (Expression_error ("identifier '" ^ id ^ "' not declared in this scope", Some "6.2.1p2", [n]))
       in
       let ty, value =
         match sym with
@@ -401,14 +401,14 @@ and tcheck_type env untyped =
           let value, enum, name =
             match enum with
             | Enumerator (trs, name, None) ->
-                succ_big_int value, Enumerator (trs, name, Some (Const_eval.make_int value)), name
+                succ_mach_int value, Enumerator (trs, name, Some (Const_eval.make_int value)), name
             | Enumerator (_, name, Some value) as enum ->
-                succ_big_int (Constant.to_big_int (value_of value)), enum, name
+                succ_mach_int (Constant.to_mach_int (value_of value)), enum, name
             | decl -> die (Declaration_error ("invalid declaration in enum", None, [decl]))
           in
           Csymtab.insert_decl name Symtab.Ordinary enum;
           value, enum :: members
-        ) (zero_big_int, []) members
+        ) (zero_mach_int, []) members
       in
       SUEType (attrs, SUE_Enum, tag, List.rev members)
 
