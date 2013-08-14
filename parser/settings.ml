@@ -15,6 +15,7 @@ type cmd_options = {
   files : string list ref;
   globals : bool ref;
   merr : bool ref;
+  no_pp : bool ref;
   output : string ref;
   stacktrace : bool ref;
   string : bool ref;
@@ -36,6 +37,7 @@ let opts = {
   files = ref [];
   globals = ref false;
   merr = ref false;
+  no_pp = ref false;
   output = ref "-";
   stacktrace = ref false;
   string = ref false;
@@ -74,6 +76,7 @@ Arg.align Arg.([
   ("-tokenise",		Set opts.tokenise,			" Only tokenise and print token names");
   ("-string",		Set opts.string,			" Parse command line arguments as code");
   ("-merr",		Set opts.merr,				" Print syntax errors in terms of token/state pairs");
+  ("-no-pp",		Set opts.no_pp,				" Do not preprocess source");
 
   ("-decl",		Unit (fun () -> opts.entry := EP_Decl),	" Parse as declaration");
   ("-expr",		Unit (fun () -> opts.entry := EP_Expr),	" Parse as expression");
@@ -103,6 +106,7 @@ let entry = !(opts.entry)
 let files = List.rev !(opts.files)
 let globals = !(opts.globals)
 let merr = !(opts.merr)
+let no_pp = !(opts.no_pp)
 let output = !(opts.output)
 let stacktrace = !(opts.stacktrace)
 let string = !(opts.string)

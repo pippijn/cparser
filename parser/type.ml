@@ -36,6 +36,8 @@ let is_integral_basic_type = function
   | UInt
   | SLong
   | ULong
+  | SLongLong
+  | ULongLong
   | SIntN _
   | UIntN _ -> true
   | _ -> false
@@ -44,6 +46,7 @@ let is_integral_basic_type = function
 let is_floating_basic_type = function
   | Float
   | Double
+  | LongDouble
   | DecimalN _
   | FloatN _ -> true
   | _ -> false

@@ -44,6 +44,9 @@ type 'a t
 val create : unit -> 'a t
   (** Create a new symbol table. The table will have entered the "global" scope. *)
 
+val reset : 'a t -> unit
+  (** Reset the symbol table. It will be in the state as after [create]. *)
+
 
 (** {6 Scope management} *)
 

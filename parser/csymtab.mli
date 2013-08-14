@@ -10,3 +10,4 @@ val lookup_decl : string -> Symtab.symtype -> Ast.declaration
 val lookup_type : string -> Symtab.symtype -> Ast.ctype
 
 val print : unit -> unit
+val reset : unit -> unit

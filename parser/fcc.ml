@@ -44,13 +44,7 @@ type result =
 (* Preprocessor flags *)
 let cppflags =
   "-I/home/pippijn/code/git/devel/obuild/src/lang/cparser/parser " ^
-  "-I/home/pippijn/code/git/lang/aldor/include " ^
-  "-I/home/pippijn/code/git/lang/aldor/_build " ^
-  "-I/home/pippijn/code/git/lang/aldor/_build/include " ^
-  "-I/usr/local/include/csmith-2.1.0 " ^
-  "-include builtin.h " ^
-  "-DHAVE_CONFIG_H " ^
-  "-DPKGLIBEXECDIR='\"/usr/local/libexec/aldor-compiler\"'"
+  "-include builtin.h "
 
 
 
@@ -69,7 +63,12 @@ let process_string parse s =
 
 
 let process_file parse file =
-  let pp = Platform.preprocessor ^ " " ^ cppflags ^ " " ^ Settings.cflags ^ " '" ^ file ^ "'" in
+  let pp =
+    if Settings.no_pp then
+      "cat '" ^ file ^ "'"
+    else
+      Platform.preprocessor ^ " " ^ cppflags ^ " " ^ Settings.cflags ^ " '" ^ file ^ "'"
+  in
   (*printf "Preprocessing with %s\n" pp;*)
   let cin = Unix.open_process_in pp in
   let result = try

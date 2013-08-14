@@ -14,6 +14,7 @@ val entry : entry_point
 val files : string list
 val globals : bool
 val merr : bool
+val no_pp : bool
 val output : string
 val stacktrace : bool
 val string : bool

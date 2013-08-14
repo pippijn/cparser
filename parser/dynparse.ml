@@ -60,11 +60,18 @@ let string_of_pos pos =
 
 let parse wcols code sexp output error missing =
   begin try
+    Csymtab.reset ();
     let tu = parse_string code in
+
+    let tu =
+      if false then
+        Frontend.run_passes tu
+      else
+        tu
+    in
 
     sexp (Sexplib.Sexp.to_string_hum (Ast.sexp_of_declaration (Traits.clear_deep_decl tu)));
 
-    (*let tu = Frontend.run_passes tu in*)
     output (Codegen.code_of_unit tu)
 
   with
@@ -113,8 +120,11 @@ let parse wcols code sexp output error missing =
         | Ast.Unimplemented (e) ->
             error (e)
       end
-  | Failure e ->
-      error ("Internal error: " ^ e)
+  | exn ->
+      error (
+        "Internal error: " ^ Printexc.to_string exn ^ "\n"
+        ^ Printexc.get_backtrace ()
+      )
   end;
 
   let codes = Errors_missing.get () in

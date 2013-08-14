@@ -11,9 +11,11 @@ type sym = csym Symtab.sym
 
 type t = csym Symtab.t
 
-let tab : t = Symtab.create ()
+let tab = Symtab.create ()
 
-let enter_scope = Symtab.enter_scope tab
+let reset () = Symtab.reset tab
+
+let enter_scope name = Symtab.enter_scope tab name
 let leave_scope () = Symtab.leave_scope tab
 
 let insert = Symtab.insert tab

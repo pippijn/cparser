@@ -132,6 +132,7 @@ rule lex state = parse
   | ('0'o+ as i) (is as is)?		{ TK_OCTAL_CONSTANT (i, is) }
   | (d+ as i) (is as is)?		{ TK_INTEGER_CONSTANT (i, is) }
 
+  | (d+ as f) (fs as fs)?
   | (d+e as f) (fs as fs)?
   | (d*'.'d+e? as f) (fs as fs)?
   | (d+'.'d*e? as f) (fs as fs)?	{ TK_FLOATING_CONSTANT (f, fs) }

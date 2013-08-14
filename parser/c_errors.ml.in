@@ -76,6 +76,25 @@ let message = function
                                    "add ';' before the closing '}'"
       | _			-> "unexpected '%s' token; expected statement after label"
 
+  | ";if"
+  | "if" -> function
+      | KW_IF			-> "expected identifier or '('"
+      | TK_RBRACE		-> "extraneous closing brace ('}')"
+
+      | _			-> "unexpected '%s'; expected identifier or '('"
+
+  | "typedef *"
+  | "typedef if" -> function
+      | _			-> "unexpected '%s'; expected type specifier"
+
+  | "typedef int" -> function
+      | _			-> "unexpected '%s'; expected type specifier or identifier"
+
+  | "static int;" -> function
+      | TK_SEMICOLON		-> "declaration does not declare anything"
+      | _			-> "unexpected '%s'; expected declarator"
+
+
   | "f(){return 0:"		-> "unexpected '%s' token; expected ';' after return statement"
   | "f(){return"		-> "expected expression or ';' in return statement"
   (* After the "0", we are not in a state related to "return", only, but rather for all statements. *)
@@ -102,5 +121,4 @@ let message = function
   | "a=1 1"			-> "expected operator after expression"
   | "a=\"\" 1"			-> "expected string literal continuation"
   | "a={"			-> "expected expression or closing '}'"
-  | "if"			-> "unexpected token in toplevel declaration"
   | "("				-> "expected identifier in declarator"

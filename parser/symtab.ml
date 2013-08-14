@@ -109,6 +109,12 @@ let create () =
   symtab
 
 
+let reset symtab =
+  Hashtbl.clear symtab.tables;
+  symtab.stack <- [];
+  enter_scope symtab "global"
+
+
 let print string_of_decl symtab =
   assert (List.length symtab.stack = 1);
   let tables =
