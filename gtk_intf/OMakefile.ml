@@ -14,6 +14,6 @@ install Library ".DEFAULT" [
   (* Library dependencies *)
   OCamlRequires [
     "lablgtk2.glade";
-    "lablgtksourceview2.gtksourceview2";
+    "lablgtk2.sourceview2";
   ];
 ]
