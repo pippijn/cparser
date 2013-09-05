@@ -93,10 +93,13 @@ module Make (P : Ide_updater.Parse) = struct
   end
 
 
-  let main =
+  let main _ =
     ignore (GMain.init ());
     let window = new editor () in
     window#window#show ();
     GMain.main ()
+
+  let () =
+    Cmdline.run main
 
 end

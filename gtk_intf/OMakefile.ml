@@ -13,6 +13,7 @@ install Library ".DEFAULT" [
 
   (* Library dependencies *)
   OCamlRequires [
+    "corelib";
     "lablgtk2.glade";
     "lablgtk2.sourceview2";
   ];

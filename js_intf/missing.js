@@ -14,6 +14,7 @@ function caml_weak_set () { console.debug ("caml_weak_set", arguments); return 7
 function caml_weak_blit () { console.debug ("caml_weak_blit", arguments); return 8; }
 function unix_error_message () { console.debug ("unix_error_message", arguments); return 15; }
 function unix_inet_addr_of_string () { console.debug ("unix_inet_addr_of_string", arguments); return 16; }
+function unix_gettimeofday () { console.debug ("unix_gettimeofday", arguments); return 0; }
 function is_digit_int () { console.debug ("is_digit_int", arguments); return 0; }
 
 function create_nat (size) {
