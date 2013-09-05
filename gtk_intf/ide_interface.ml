@@ -94,8 +94,9 @@ module Make (P : Ide_updater.Parse) = struct
 
 
   let main =
+    ignore (GMain.init ());
     let window = new editor () in
     window#window#show ();
-    GMain.Main.main ()
+    GMain.main ()
 
 end
