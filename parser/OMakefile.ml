@@ -59,6 +59,10 @@ install Library ".DEFAULT" [
     "Xfail";
   ];
 
+  Headers [
+    "builtin.h";
+  ];
+
   (* Library dependencies *)
   OCamlRequires [
     "libmerr";
@@ -78,7 +82,12 @@ install Library ".DEFAULT" [
     "sclass.ml",	"-syntax camlp4o";
   ];
 
-  Var ("RUNMERR", "$(bindir)/fcc1.native -no-pp -merr -");
+  (* Install headers into include *)
+  Rule (
+    "$(ocaml-libdir)/$(Name)/META",
+    "$(install-target $(includedir), $(Headers))",
+    []
+  );
 
-  Rule ("c_errors.ml", "builtin.h", []);
+  Var ("RUNMERR", "$(bindir)/fcc1.native -no-pp -merr -");
 ]

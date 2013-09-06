@@ -43,8 +43,7 @@ type result =
 
 (* Preprocessor flags *)
 let cppflags =
-  "-I/home/pippijn/code/git/devel/obuild/src/lang/cparser/parser " ^
-  "-include builtin.h "
+  "-include builtin.h"
 
 
 
