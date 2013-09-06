@@ -1,1 +1,16 @@
-recurse-into ($(glob D, *))
+SUBDIRS[] =
+  fcc1
+  parser
+  testsuite
+
+if $(has-ocaml-package lablgtk2.sourceview2):
+  SUBDIRS += fcc_gtk
+  SUBDIRS += gtk_intf
+  export
+
+if $(has-ocaml-package js_of_ocaml):
+  SUBDIRS += fcc_js
+  SUBDIRS += js_intf
+  export
+
+recurse-into ($(SUBDIRS))
