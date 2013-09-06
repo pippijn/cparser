@@ -63,7 +63,7 @@ install Library ".DEFAULT" [
   OCamlRequires [
     "libmerr";
     "sexplib.syntax";
-    "ucs";
+    "ucslib";
   ];
 
   (* Camlp4 *)

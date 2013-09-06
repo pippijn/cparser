@@ -1,4 +1,4 @@
-open Ucs
+open Ucslib
 
 type state =
   | Initial
