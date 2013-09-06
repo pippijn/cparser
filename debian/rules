@@ -27,7 +27,7 @@ override_dh_auto_configure:
 .PHONY: override_dh_auto_build
 override_dh_auto_build:
 	cd obuild && omake
-	rm obuild/_build/parser/c_errors.ml
+	rm obuild/_build/src/cparser/parser/c_errors.ml
 	cd obuild && omake
 
 .PHONY: override_dh_auto_test
