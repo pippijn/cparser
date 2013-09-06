@@ -1,0 +1,3 @@
+@OCamlStdlibDir@/cparser/META
+@OCamlStdlibDir@/cparser/*.cma
+@OCamlStdlibDir@/cparser/*.cmxs
