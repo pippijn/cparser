@@ -85,35 +85,35 @@
     }
 }
 
-let lower    = ['a'-'z']
-let upper    = ['A'-'Z']
+let lower	= ['a'-'z']
+let upper	= ['A'-'Z']
 
-let digit    = ['0'-'9']
+let digit	= ['0'-'9']
 
-let alpha = (lower | upper)
-let alnum = (alpha | digit)
+let alpha	= (lower | upper)
+let alnum	= (alpha | digit)
 
-let identifier = (alpha | '_')(alnum | '_')*
+let identifier	= (alpha | '_')(alnum | '_')*
 
-let bstring = '`'  ('\\' _ | [^ '\\' '`' ])* '`'
-let dstring = '"'  ('\\' _ | [^ '\\' '"' ])* '"'
-let sstring = '\'' ('\\' _ | [^ '\\' '\''])* '\''
+let bstring	= '`'  ('\\' _ | [^ '\\' '`' ])* '`'
+let dstring	= '"'  ('\\' _ | [^ '\\' '"' ])* '"'
+let sstring	= '\'' ('\\' _ | [^ '\\' '\''])* '\''
 
 
-let d = digit
-let o = ['0'-'7']
-let h = ['a'-'f' 'A'-'F' '0'-'9']
-let xh = ('0'['x''X'])
-let b = ['0' '1']
-let xb = ('0'['b''B'])
-let e = (['E''e']['+''-']?d+)
-let p = (['P''p']['+''-']?d+)
-let fs = (['i' 'j' 'f' 'F' 'l' 'L' 'q' 'Q' 'd' 'D']+)
-let is = (['i' 'j' 'u' 'l' 'U' 'L']+)
+let d	= digit
+let o	= ['0'-'7']
+let h	= ['a'-'f' 'A'-'F' '0'-'9']
+let xh	= ('0'['x''X'])
+let b	= ['0' '1']
+let xb	= ('0'['b''B'])
+let e	= (['E''e']['+''-']?d+)
+let p	= (['P''p']['+''-']?d+)
+let fs	= (['i' 'j' 'f' 'F' 'l' 'L' 'q' 'Q' 'd' 'D']+)
+let is	= (['i' 'j' 'u' 'l' 'U' 'L']+)
 
-let ws = [' ' '\t' '\r']
+let ws	= [' ' '\t' '\r']
 
-let u = ['\x80'-'\xbf']
+let u	= ['\x80'-'\xbf']
 
 
 rule lex state = parse
@@ -132,12 +132,12 @@ rule lex state = parse
   | ('0'o+ as i) (is as is)?		{ TK_OCTAL_CONSTANT (i, is) }
   | (d+ as i) (is as is)?		{ TK_INTEGER_CONSTANT (i, is) }
 
-  | (d+ as f) (fs as fs)?
-  | (d+e as f) (fs as fs)?
-  | (d*'.'d+e? as f) (fs as fs)?
-  | (d+'.'d*e? as f) (fs as fs)?	{ TK_FLOATING_CONSTANT (f, fs) }
-  | (xh h*p h* as f) (fs as fs)?
-  | (xh h*'.'h*p h* as f) (fs as fs)?	{ TK_HEX_FLOATING_CONSTANT (f, fs) }
+  |(d+
+  | d+e
+  | d*'.'d+e?
+  | d+'.'d*e? as f) (fs as fs)?		{ TK_FLOATING_CONSTANT (f, fs) }
+  |(xh h*p h*
+  | xh h*'.'h*p h* as f) (fs as fs)?	{ TK_HEX_FLOATING_CONSTANT (f, fs) }
 
   | sstring			as s	{ TK_CHAR_CONSTANT s }
   | dstring			as s	{ TK_STRING_LITERAL s }
