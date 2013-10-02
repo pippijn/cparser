@@ -2,15 +2,17 @@ Source: ocaml-cparser
 Section: ocaml
 Priority: optional
 Maintainer: Pippijn van Steenhoven <pip88nl@gmail.com>
-Uploaders: 
-  Pippijn van Steenhoven <pip88nl@gmail.com>
 Build-Depends:
-  obuild,
-  ocaml-nox (>= 3.12),
-  ocaml-findlib,
-  libsexplib-camlp4-dev,
-  dh-ocaml,
-  debhelper (>= 8.0.0)
+ debhelper (>= 8.0.0),
+ obuild,
+ dh-ocaml,
+ ocaml-nox (>= 3.12),
+ ocaml-findlib,
+ libbaselib-ocaml-dev,
+ libsexplib-camlp4-dev,
+ libucslib-ocaml-dev,
+ menhir,
+ merr
 Standards-Version: 3.9.2
 Homepage: https://github.com/pippijn/cparser
 Vcs-Git: git://github.com/pippijn/cparser
@@ -20,19 +22,19 @@ Package: cparser
 Architecture: any
 Depends: ${ocaml:Depends}, ${misc:Depends}, ${shlibs:Depends}
 Provides: ${ocaml:Provides}
-Description: Common library for OCaml projects
- This library contains some common modules I use for
- most of my projects.
+Description: Clean and efficient C parser library for OCaml
+ Type-checking C parser and printer for source to source transformation
+ and simple syntax extensions.
  .
- This package contains the shared runtime libraries.
+ This package contains a sample front-end.
 
 Package: libcparser-ocaml
 Architecture: any
 Depends: ${ocaml:Depends}, ${misc:Depends}, ${shlibs:Depends}
 Provides: ${ocaml:Provides}
 Description: Common library for OCaml projects
- This library contains some common modules I use for
- most of my projects.
+ Type-checking C parser and printer for source to source transformation
+ and simple syntax extensions.
  .
  This package contains the shared runtime libraries.
 
@@ -42,5 +44,5 @@ Depends: ${ocaml:Depends}, ${misc:Depends}
 Provides: ${ocaml:Provides}
 Recommends: ocaml-findlib
 Description: Common library for OCaml projects
- This library contains some common modules I use for
- most of my projects.
+ Type-checking C parser and printer for source to source transformation
+ and simple syntax extensions.
