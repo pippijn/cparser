@@ -55,12 +55,7 @@ let add_file file =
   else
     opts.files := file :: !(opts.files)
 
-let cmd =
-  let parse_cflags = function
-    | "" -> opts.cflags :=     " -m64 " ^ !(opts.cflags)
-    | s  -> opts.cflags := s ^ " -m32 " ^ !(opts.cflags)
-  in
-Arg.align Arg.([
+let cmd = Arg.align Arg.([
   ("-tokens",		Set opts.tokens,			" Print all tokens to stdout as they are read");
   ("-ast",		Set opts.ast,				" Print AST as S-expressions after parsing");
   ("-ast-pp",		Set opts.ast_pp,			" Print AST as S-expressions after transformations");
@@ -84,7 +79,7 @@ Arg.align Arg.([
   ("-type",		Unit (fun () -> opts.entry := EP_Type),	" Parse as type");
   ("-unit",		Unit (fun () -> opts.entry := EP_Unit),	" Parse as translation unit");
 
-  ("-cflags",		String parse_cflags,			"<flags>  Pass extra flags to the C compiler");
+  ("-cflags",		Set_string opts.cflags,			"<flags>  Pass extra flags to the C compiler");
 
   ("-v",		Unit (Platform.print_version),		" Output version and target platform");
 

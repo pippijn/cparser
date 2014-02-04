@@ -66,31 +66,39 @@ let process_file parse file =
     if Settings.no_pp then
       "cat '" ^ file ^ "'"
     else
-      Platform.preprocessor ^ " " ^ cppflags ^ " " ^ Settings.cflags ^ " '" ^ file ^ "'"
+      String.concat " " [
+        Platform.preprocessor;
+        cppflags;
+        Settings.cflags;
+        "'" ^ file ^ "'";
+      ]
   in
-  (*printf "Preprocessing with %s\n" pp;*)
+
+  if Settings.verbose then
+    printf "Preprocessing with %s\n" pp;
+
   let cin = Unix.open_process_in pp in
-  let result = try
-    let lexbuf = Lexing.from_channel cin in
 
-    let open Lexing in
-    lexbuf.lex_curr_p <- {
-      lexbuf.lex_curr_p with
-      pos_fname = if file = "-" then "<stdin>" else file
-    };
+  let result =
+    try
+      let lexbuf = Lexing.from_channel cin in
 
-    if Settings.verbose then begin
-      Printf.fprintf stderr "processing %s\n" file;
-      flush stderr
-    end;
-    flush stdout;
-    parse lexbuf
-  with
-  | e ->
-      handle_return (Unix.close_process_in cin);
-      raise e
+      let open Lexing in
+      lexbuf.lex_curr_p <- {
+        lexbuf.lex_curr_p with
+        pos_fname = if file = "-" then "<stdin>" else file
+      };
+
+      flush stdout;
+      parse lexbuf
+    with
+    | e ->
+        handle_return (Unix.close_process_in cin);
+        raise e
   in
+
   handle_return (Unix.close_process_in cin);
+
   result
 
 
@@ -190,28 +198,24 @@ let astexnwrap fn arg =
       | Ast.Parse_error (msg, node) ->
           printf "Parse error: %s " msg;
           print_decl node;
-          raise exit_failure
       | Ast.Declaration_error (msg, section, nodes) ->
           printf "Declaration error: %s%s\n" (iso section) msg;
           List.iter (fun node ->
             print_string "- ";
             print_decl node
           ) nodes;
-          raise exit_failure
       | Ast.Expression_error (msg, section, nodes) ->
           printf "Expression error: %s%s\n" (iso section) msg;
           List.iter (fun node ->
             print_string "- ";
             print_expr node
           ) nodes;
-          raise exit_failure
       | Ast.Statement_error (msg, section, nodes) ->
           printf "Statement error: %s%s\n" (iso section) msg;
           List.iter (fun node ->
             print_string "- ";
             print_stmt node
           ) nodes;
-          raise exit_failure
       | Ast.Type_error (msg, section, nodes) ->
           printf "Type error: %s%s\n" (iso section) msg;
           List.iter (fun node ->
@@ -219,11 +223,11 @@ let astexnwrap fn arg =
             print_string (Codegen.code_of_type node);
             print_newline ()
           ) nodes;
-          raise exit_failure
       | Ast.Unimplemented msg ->
           printf "Unimplemented: %s\n" msg;
-          raise exit_failure
-      end
+      end;
+
+      raise exit_failure
 
 
 

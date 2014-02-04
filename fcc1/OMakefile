@@ -1,0 +1,10 @@
+Name = fcc1
+
+OCaml-Sources[] =
+  Fcc1
+
+OCaml-Requires[] =
+  cparser
+
+TARGET = $(program-install)
+.DEFAULT: $(TARGET)

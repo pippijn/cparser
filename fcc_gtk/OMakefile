@@ -1,0 +1,14 @@
+# Target
+Name = fcc_gtk
+
+# Sources
+OCaml-Sources[] =
+  Fcc_ide
+
+# Library dependencies
+OCaml-Requires[] =
+  cparser
+  gtk_intf
+
+TARGET = $(program-install)
+#.DEFAULT: $(TARGET)

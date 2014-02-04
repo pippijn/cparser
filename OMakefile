@@ -4,13 +4,13 @@ SUBDIRS[] =
   testsuite
 
 if $(has-ocaml-package lablgtk2.sourceview2):
-  SUBDIRS += fcc_gtk
   SUBDIRS += gtk_intf
+  SUBDIRS += fcc_gtk
   export
 
 if $(has-ocaml-package js_of_ocaml):
-  SUBDIRS += fcc_js
   SUBDIRS += js_intf
+  SUBDIRS += fcc_js
   export
 
 recurse-into ($(SUBDIRS))

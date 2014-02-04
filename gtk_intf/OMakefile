@@ -1,0 +1,19 @@
+# Target
+Name = gtk_intf
+Description = GTK+ interface to DynParse
+Version = 0.1
+
+# Sources
+OCaml-Sources[] =
+  Ide_interface
+  Ide_ui
+  Ide_updater
+
+# Library dependencies
+OCaml-Requires[] =
+  corelib
+  lablgtk2.glade
+  lablgtk2.sourceview2
+
+TARGET = $(library-install)
+.DEFAULT: $(TARGET)

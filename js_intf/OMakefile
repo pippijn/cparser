@@ -1,0 +1,30 @@
+# Target
+Name = js_intf
+Description = JavaScript interface to DynParse
+Version = 0.1
+
+# Sources
+OCaml-Sources[] =
+  Js_interface
+  Js_updater
+
+# Library dependencies
+OCaml-Requires[] =
+  js_of_ocaml
+  js_of_ocaml.syntax
+  lwt
+
+# Camlp4
+Flags. +=
+  $|js_interface.ml|	= -syntax camlp4o
+
+# Only byte-code
+OCAML_BYTE = true
+OCAML_NATIVE = false
+
+upload: missing.js
+  chmod 644 $^
+  scp $^ ra:public_html/files/up/parser/
+
+TARGET = $(library-install)
+.DEFAULT: $(TARGET)
