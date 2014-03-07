@@ -1,7 +1,7 @@
 # Target
-Name = js_intf
-Description = JavaScript interface to DynParse
-Version = 0.1
+Name		= js_intf
+Description	= JavaScript interface to DynParse
+Version		= 0.1
 
 # Sources
 OCaml-Sources[] =

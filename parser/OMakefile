@@ -1,6 +1,6 @@
-Name = cparser
-Description = C parser for OCaml
-Version = 0.1
+Name		= cparser
+Description	= C parser for OCaml
+Version		= 0.1
 
 OCaml-Sources[] =
   Assign_names

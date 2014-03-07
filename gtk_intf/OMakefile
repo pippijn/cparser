@@ -1,7 +1,7 @@
 # Target
-Name = gtk_intf
-Description = GTK+ interface to DynParse
-Version = 0.1
+Name		= gtk_intf
+Description	= GTK+ interface to DynParse
+Version		= 0.1
 
 # Sources
 OCaml-Sources[] =

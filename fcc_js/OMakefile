@@ -1,5 +1,5 @@
 # Target
-Name = fcc_js
+Name		= fcc_js
 
 # Sources
 OCaml-Sources[] =
