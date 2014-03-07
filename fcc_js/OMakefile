@@ -16,7 +16,7 @@ OCAML_NATIVE = false
 
 upload: $(Name).js
   chmod 644 $^
-  scp $^ ra:public_html/files/up/parser/
+  scp $^ $"isis:public_html/files/up/parser/"
 
 TARGET = $(program)
 .DEFAULT: $(TARGET)

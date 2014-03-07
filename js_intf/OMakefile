@@ -24,7 +24,7 @@ OCAML_NATIVE = false
 
 upload: missing.js
   chmod 644 $^
-  scp $^ ra:public_html/files/up/parser/
+  scp $^ $"isis:public_html/files/up/parser/"
 
 TARGET = $(library-install)
 .DEFAULT: $(TARGET)
