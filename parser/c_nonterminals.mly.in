@@ -1525,9 +1525,9 @@ attrib
 		{ "optimize", [$3; $5] }
 	| KW_ATTR_TARGET paren(string_literal)
 		{ "target", [$2] }
+	| KW_ATTR_ALLOC_SIZE paren(numeric_literal)
+		{ "alloc_size", [$2] }
 
-	| KW_ATTR_ALLOC_SIZE
-		{ "alloc_size", [] }
 	| KW_ATTR_ALTIVEC
 		{ "altivec", [] }
 	| KW_ATTR_BACK_SWITCH

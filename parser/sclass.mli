@@ -10,8 +10,8 @@ type storage_class =
 type storage_classes
 
 
-val storage_classes_of_sexp : Sexplib.Sexp.t -> storage_classes
-val sexp_of_storage_classes : storage_classes -> Sexplib.Sexp.t
+module Show_storage_classes : Deriving_Show.Show
+  with type a = storage_classes
 
 val empty : storage_classes
 val is_empty : storage_classes -> bool

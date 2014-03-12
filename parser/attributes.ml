@@ -1,4 +1,3 @@
-open Sexplib.Conv
 open Lexing
 
 type 'a attribute = (string * 'a list) list
@@ -10,7 +9,7 @@ and 'a attributes = [`Attribute of 'a attribute]
 and position_scope = [`Position of Location.t | `Scope of string]
 and position = [`Position of Location.t]
 and scope = [`Scope of string]
-with sexp
+deriving (Show)
 
 
 let attribute_opt traits =

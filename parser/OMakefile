@@ -61,18 +61,20 @@ C-Headers[] =
 OCaml-Requires[] =
   libmerr
   num
-  sexplib.syntax
+  sexplib
+  deriving-ocsigen
   ucslib
 
 Flags. +=
-  $|ExUTF8.ml|		= -syntax camlp4o
-  $|ast.ml|		= -syntax camlp4o
-  $|attributes.ml|	= -syntax camlp4o
-  $|constant.ml|	= -syntax camlp4o
-  $|tqual.ml|		= -syntax camlp4o
-  $|platform.ml|	= -syntax camlp4o
-  $|location.ml|	= -syntax camlp4o
-  $|sclass.ml|		= -syntax camlp4o
+  $|ExUTF8.ml|		= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|ast.ml|		= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|attributes.ml|	= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|constant.ml|	= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|tqual.ml|		= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|platform.ml|	= -syntax camlp4o -package sexplib.syntax
+  $|mach_int.ml|	= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|location.ml|	= -syntax camlp4o -package deriving-ocsigen.syntax
+  $|sclass.ml|		= -syntax camlp4o -package deriving-ocsigen.syntax
 
 # Install headers into include
 $(ocaml-libdir)/$(Name)/META: $(install-target $(includedir), $(C-Headers))

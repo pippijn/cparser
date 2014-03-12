@@ -64,23 +64,19 @@ let output_sep output_node p sep lst =
 let opt = Option.may
 
 
-(****************************************************************************
- *
- * The main pretty print function. This holds the two shared output functions
- *
- *   p : string -> unit
- *     Output a string. Takes care that tokens, which need whitespace between
- *     them in order to be considered separate, will be separated.
- *
- *   pl : position -> unit
- *     Set the output position. Prints "#line" directives or additional
- *     whitespace (spaces, newlines) as required.
- *
- *
- * This function holds the actual pretty printing functions for each AST node.
- *
- ****************************************************************************)
-let output_toplevel p pl =
+(* The main pretty print function. This holds the two shared output functions
+  
+     p : string -> unit
+       Output a string. Takes care that tokens, which need whitespace between
+       them in order to be considered separate, will be separated.
+  
+     pl : bool -> position -> unit
+       Set the output position. Prints "#line" directives or additional
+       whitespace (spaces, newlines) as required. The boolean argument
+       specifies whether it is the node start (true) or end position (false).
+  
+   This function holds the actual pretty printing functions for each AST node. *)
+let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) =
   let t tok = p (Token.string_of_token tok) in
 
   let is_anon s =
@@ -779,7 +775,7 @@ let add_string buf ctx =
 
       (*Printf.printf "need_space %c %c\n" ctx.last first;*)
       let added = (add_space (need_space (ctx.last, first)))
-      		+ (add_space (s = "..."))
+                + (add_space (s = "..."))
       in
 
       ctx.last <- s.[String.length s - 1];
@@ -856,13 +852,18 @@ let output indent fn =
     };
   } in
   let p = add_string buf ctx in
-  let pl = if indent then set_source_position buf ctx else (fun is_start pos -> ()) in
+  let pl =
+    if indent then
+      set_source_position buf ctx
+    else
+      (fun is_start pos -> ())
+  in
   fn p pl;
   Buffer.contents buf
 
 
-let output_fn node =
-  fun p pl -> output_toplevel p pl node
+let output_fn node p pl =
+  output_toplevel p pl node
 
 
 let code_of_decl decl = output false (output_fn (Decl decl))

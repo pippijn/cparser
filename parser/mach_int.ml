@@ -33,13 +33,15 @@ module type IntType = sig
   val succ_mach_int : mach_int -> mach_int
   val xor_mach_int : mach_int -> mach_int -> mach_int
 
-  val mach_int_of_sexp : Sexplib.Sexp.t -> mach_int
-  val sexp_of_mach_int : mach_int -> Sexplib.Sexp.t
+  module Show_mach_int : Deriving_Show.Show
+    with type a = mach_int
+
 end
 
 
 module MachInt64 : IntType = struct
   type mach_int = int64
+    deriving (Show)
 
   let is_big = false
 
@@ -70,18 +72,6 @@ module MachInt64 : IntType = struct
   let sub_mach_int = Int64.sub
   let succ_mach_int = Int64.succ
   let xor_mach_int = Int64.logxor
-
-
-  let mach_int_of_sexp = function
-    | Sexplib.Sexp.Atom s ->
-        mach_int_of_string s
-    | _ ->
-        assert false
-
-  let sexp_of_mach_int i =
-    Sexplib.Sexp.Atom (
-      string_of_mach_int i
-    )
 
 end
 
@@ -122,16 +112,15 @@ module MachBig_int : IntType = struct
   let xor_mach_int = xor_big_int
 
 
-  let mach_int_of_sexp = function
-    | Sexplib.Sexp.Atom s ->
-        mach_int_of_string s
-    | _ ->
-        assert false
+  module Show_mach_int = Deriving_Show.Defaults(
+    struct
 
-  let sexp_of_mach_int i =
-    Sexplib.Sexp.Atom (
-      string_of_mach_int i
-    )
+      type a = mach_int
+
+      let format fmt i =
+        Deriving_Show.Show_string.format fmt (string_of_mach_int i)
+
+    end)
 
 end
 

@@ -12,9 +12,10 @@ type storage_class =
   (* Local storage classes *)
   | SC_Auto		(** [auto] *)
   | SC_Register		(** [register] *)
-  with sexp
+  deriving (Show)
 
-type storage_classes = storage_class list with sexp
+type storage_classes = storage_class list
+  deriving (Show)
 
 
 let empty = []

@@ -7,9 +7,10 @@ type type_qualifier =
   | TQ_Volatile		(** [volatile] *)
   | TQ_Complex		(** [_Complex] *)
   | TQ_Restrict		(** [restrict] *)
-  with sexp
+  deriving (Show)
 
-type type_qualifiers = type_qualifier list with sexp
+type type_qualifiers = type_qualifier list
+  deriving (Show)
 
 
 let empty = []

@@ -64,7 +64,7 @@ let parse wcols code sexp output error missing =
     Csymtab.reset ();
     let tu = parse_string code in
 
-    sexp (Sexplib.Sexp.to_string_hum (Ast.sexp_of_declaration (Traits.clear_deep_decl tu)));
+    sexp (Ast.Show_declaration.show (Traits.clear_deep_decl tu));
     output (Codegen.code_of_unit tu);
 
     let tu =
@@ -74,7 +74,7 @@ let parse wcols code sexp output error missing =
         tu
     in
 
-    sexp (Sexplib.Sexp.to_string_hum (Ast.sexp_of_declaration (Traits.clear_deep_decl tu)));
+    sexp (Ast.Show_declaration.show (Traits.clear_deep_decl tu));
     output (Codegen.code_of_unit tu);
 
   with

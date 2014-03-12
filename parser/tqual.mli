@@ -6,9 +6,8 @@ type type_qualifier =
 
 type type_qualifiers
 
-
-val type_qualifiers_of_sexp : Sexplib.Sexp.t -> type_qualifiers
-val sexp_of_type_qualifiers : type_qualifiers -> Sexplib.Sexp.t
+module Show_type_qualifiers : Deriving_Show.Show
+  with type a = type_qualifiers
 
 val empty : type_qualifiers
 val is_empty : type_qualifiers -> bool

@@ -193,7 +193,7 @@ and pseudo_operator =
   | OP_Cast			(** "[(a)b]" *)
   | OP_Sizeof			(** "[sizeof (a)]" *)
   | OP_Alignof			(** "[__alignof (a)]" *)
-  with sexp
+  deriving (Show)
 
 type attribute = expression Attributes.attribute
 
@@ -402,7 +402,7 @@ and declaration =
   (* Struct/union/enum types *)
   | Enumerator of position * (*id*)string * (*value*)expression option
   (** [Enumerator (_, id, value)] *)
-  with sexp
+  deriving (Show)
 
 
 (** {6 Main exception type} *)

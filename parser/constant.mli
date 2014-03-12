@@ -5,8 +5,8 @@ type t =
   | StringValue of string
   | WStringValue of ExUTF8.t
 
-val t_of_sexp : Sexplib.Sexp.t -> t
-val sexp_of_t : t -> Sexplib.Sexp.t
+module Show_t : Deriving_Show.Show
+with type a = t
 
 val of_int : int -> t
 val of_mach_int : Mach_int.mach_int -> t

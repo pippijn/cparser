@@ -1,22 +1,17 @@
 open Attributes
-open Sexplib.Sexp
 
 
-let print_decl tu =
-  output_hum stdout (Ast.sexp_of_declaration tu);
-  print_newline ()
+let print_decl decl =
+  print_endline (Ast.Show_declaration.show decl)
 
 let print_expr expr =
-  output_hum stdout (Ast.sexp_of_expression expr);
-  print_newline ()
+  print_endline (Ast.Show_expression.show expr)
 
 let print_stmt stmt =
-  output_hum stdout (Ast.sexp_of_statement stmt);
-  print_newline ()
+  print_endline (Ast.Show_statement.show stmt)
 
-let print_type stmt =
-  output_hum stdout (Ast.sexp_of_ctype stmt);
-  print_newline ()
+let print_type ty =
+  print_endline (Ast.Show_ctype.show ty)
 
 
 let string_of_storage_class sc = Token.string_of_token (Token.token_of_storage_class sc)

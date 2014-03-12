@@ -2,7 +2,9 @@ open Mach_int
 open Sexplib.Sexp
 open Sexplib.Conv
 
-type ustring = ExUTF8.t with sexp
+type ustring = ExUTF8.t
+  deriving (Show)
+ 
 
 type t =
   | NonConst
@@ -10,7 +12,7 @@ type t =
   | FloatValue of float
   | StringValue of string
   | WStringValue of ustring
-  with sexp
+  deriving (Show)
 
 
 let of_mach_int i = IntValue i

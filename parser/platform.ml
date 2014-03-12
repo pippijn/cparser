@@ -57,9 +57,9 @@ type machine = {
   sizeof_function_pointer	: int;
   alignof_function_pointer	: int;
 
-  size_t			: Ast.ctype;
-  ptrdiff_t			: Ast.ctype;
-  wchar_t			: Ast.ctype;
+  (*size_t			: Ast.ctype;*)
+  (*ptrdiff_t			: Ast.ctype;*)
+  (*wchar_t			: Ast.ctype;*)
 
   preprocessor			: string;
   compiler			: string;
@@ -97,9 +97,9 @@ let default = {
   sizeof_function_pointer	= 8;
   alignof_function_pointer	= 8;
 
-  size_t			= BasicType ULong;
-  ptrdiff_t			= BasicType SLong;
-  wchar_t			= BasicType SInt;
+  (*size_t			= BasicType ULong;*)
+  (*ptrdiff_t			= BasicType SLong;*)
+  (*wchar_t			= BasicType SInt;*)
 
   preprocessor			= "gcc -Wfatal-errors -xc -E";
   compiler			= "gcc -Wfatal-errors -xc -fsyntax-only -";
@@ -146,9 +146,12 @@ let alignof_object_pointer = machine.alignof_object_pointer
 let sizeof_function_pointer = machine.sizeof_function_pointer
 let alignof_function_pointer = machine.alignof_function_pointer
 
-let size_t = machine.size_t
-let ptrdiff_t = machine.ptrdiff_t
-let wchar_t = machine.wchar_t
+(*let size_t = machine.size_t*)
+(*let ptrdiff_t = machine.ptrdiff_t*)
+(*let wchar_t = machine.wchar_t*)
+let size_t			= BasicType ULong
+let ptrdiff_t			= BasicType SLong
+let wchar_t			= BasicType SInt
 
 let preprocessor = machine.preprocessor
 let compiler = machine.compiler
@@ -195,6 +198,6 @@ let print_version () =
   printf " external name mangling : %s\n" (if machine.underscore_names then "leading underscore" else "plain");
   printf " char signedness        : %s\n" (if machine.char_is_signed then "signed" else "unsigned");
   printf " endianness             : %s endian\n" (string_of_endianness machine.endian);
-  printf " size_t                 : %s\n" (Codegen.code_of_type machine.size_t);
-  printf " ptrdiff_t              : %s\n" (Codegen.code_of_type machine.ptrdiff_t);
-  printf " wchar_t                : %s\n" (Codegen.code_of_type machine.wchar_t);
+  (*printf " size_t                 : %s\n" (Codegen.code_of_type machine.size_t);*)
+  (*printf " ptrdiff_t              : %s\n" (Codegen.code_of_type machine.ptrdiff_t);*)
+  (*printf " wchar_t                : %s\n" (Codegen.code_of_type machine.wchar_t);*)

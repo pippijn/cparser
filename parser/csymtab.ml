@@ -3,8 +3,12 @@ type csym =
   | Type of Ast.ctype
 
 
-let decl_of_csym (Decl decl) = decl
-let type_of_csym (Type ctyp) = ctyp
+let decl_of_csym = function
+  | Decl decl -> decl
+  | Type _ -> assert false
+let type_of_csym = function
+  | Type ctyp -> ctyp
+  | Decl _ -> assert false
 
 
 type sym = csym Symtab.sym

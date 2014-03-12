@@ -1,6 +1,5 @@
-open Sexplib.Conv
-
-type t = string with sexp
+type t = string
+  deriving (Show)
 
 
 let uchar_of_int chr =
