@@ -18,7 +18,7 @@ let opt = Option.may
 
 let iter_stmt { iter_type; iter_expr; iter_stmt; iter_decl } node =
   match node with
-  | Nop -> ()
+  | EmptyStmt -> ()
 
   (* Statements *)
   | CompoundStatement (_, stmts) -> iter iter_stmt stmts
@@ -98,7 +98,7 @@ let iter_expr { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
 let iter_type { iter_type; iter_expr; iter_stmt; iter_decl } node =
   match node with
-  | NoType -> ()
+  | EmptyType -> ()
 
   (* Wildcards *)
   | WildcardType _ -> ()
@@ -118,7 +118,7 @@ let iter_type { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
 let iter_decl { iter_type; iter_expr; iter_stmt; iter_decl } node =
   match node with
-  | NoDecl -> ()
+  | EmptyDecl -> ()
   | TranslationUnit (decls) -> iter iter_decl decls
 
   (* Wildcards *)
@@ -163,7 +163,7 @@ let opt = Option.map
 
 let map_stmt { map_type; map_expr; map_stmt; map_decl } node =
   match node with
-  | Nop -> node
+  | EmptyStmt -> node
 
   (* Statements *)
   | CompoundStatement (trs, stmts) -> CompoundStatement (trs, map map_stmt stmts)
@@ -240,7 +240,7 @@ let map_expr { map_type; map_expr; map_stmt; map_decl } = function
 
 
 let map_type { map_type; map_expr; map_stmt; map_decl } = function
-  | NoType -> NoType
+  | EmptyType -> EmptyType
 
   (* Wildcards *)
   | WildcardType _ as node -> node
@@ -260,7 +260,7 @@ let map_type { map_type; map_expr; map_stmt; map_decl } = function
 
 let map_decl { map_type; map_expr; map_stmt; map_decl } node =
   match node with
-  | NoDecl -> node
+  | EmptyDecl -> node
   | TranslationUnit (decls) -> TranslationUnit (map map_decl decls)
 
   (* Wildcards *)
@@ -307,7 +307,7 @@ let (|>) x (f, a) = f x a
 
 let fold_stmt { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   match node with
-  | Nop -> data
+  | EmptyStmt -> data
 
   (* Statements *)
   | CompoundStatement (_, stmts) -> fold_left fold_stmt data stmts
@@ -403,7 +403,7 @@ let fold_expr { fold_type; fold_expr; fold_stmt; fold_decl } data node =
 
 let fold_type { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   match node with
-  | NoType -> data
+  | EmptyType -> data
 
   (* Wildcards *)
   | WildcardType _ -> data
@@ -425,7 +425,7 @@ let fold_type { fold_type; fold_expr; fold_stmt; fold_decl } data node =
 
 let fold_decl { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   match node with
-  | NoDecl -> data
+  | EmptyDecl -> data
   | TranslationUnit (decls) -> fold_left fold_decl data decls
 
   (* Wildcards *)

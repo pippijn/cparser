@@ -126,7 +126,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         t KW_ASM;
         p "("; iter p code; p ")"; p ";";
 
-    | NoDecl ->
+    | EmptyDecl ->
         ()
 
     | StructDeclarator _ as n ->
@@ -176,7 +176,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         iter output_stmt stmts;
         Lazy.force output_end_pos;
         p "}"
-    | IfStatement (_, cond, then_stmt, Nop) ->
+    | IfStatement (_, cond, then_stmt, EmptyStmt) ->
         t KW_IF;
         p "("; output_expr cond; p ")";
         output_stmt then_stmt
@@ -263,7 +263,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         p ")";
         p ";"
 
-    | Nop -> die (Statement_error ("output_stmt", None, [Nop]))
+    | EmptyStmt -> die (Statement_error ("output_stmt", None, [EmptyStmt]))
     end;
     Lazy.force output_end_pos
 
@@ -564,7 +564,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
           | TypeofType (ty) ->
               p (Token.string_of_token KW_TYPEOF); p "("; output_type ty; p ")"
 
-          | NoType -> ()
+          | EmptyType -> ()
 
           | WildcardType _ as n -> die (Type_error ("output_partial_type Left", None, [n]))
         end
@@ -593,7 +593,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
           | TypeofType _ ->
               ()
 
-          | NoType -> ()
+          | EmptyType -> ()
 
           | WildcardType _ as n -> die (Type_error ("output_partial_type Right", None, [n]))
         end

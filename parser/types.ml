@@ -7,7 +7,7 @@ let add_tqual ty = function
   | [] -> ty
   | tqs ->
       let rec add = function
-        | NoType
+        | EmptyType
         | PartialBasicType _
         | BasicType _
         | PointerType _
@@ -27,7 +27,7 @@ let add_tqual ty = function
 
 let rec add_basic_type ty bt =
   match ty with
-  | NoType ->
+  | EmptyType ->
       PartialBasicType ([bt])
 
   | PartialBasicType (bts) ->
@@ -41,8 +41,8 @@ let rec add_basic_type ty bt =
 
 let rec pointer_to ty =
   match ty with
-  | NoType ->
-      PointerType (NoType)
+  | EmptyType ->
+      PointerType (EmptyType)
   | ArrayType (arity, base) ->
       ArrayType (arity, pointer_to base)
   | _ -> die (Type_error ("pointer_ty", None, [ty]))
@@ -50,7 +50,7 @@ let rec pointer_to ty =
 
 let rec set_base_type newbase =
   let set ty = set_base_type newbase ty in function
-  | NoType ->
+  | EmptyType ->
       newbase
   | ArrayType (arity, base) ->
       ArrayType (arity, set base)
@@ -65,7 +65,7 @@ let rec set_base_type newbase =
 
 
 let make_array_type arrays =
-  List.fold_left (fun ty base -> set_base_type base ty) NoType arrays
+  List.fold_left (fun ty base -> set_base_type base ty) EmptyType arrays
 
 
 let rec base_type ty =
@@ -85,7 +85,7 @@ let rec base_type ty =
 let rec unbase_type = function
   |                    TypeofExpr _ | TypeofType _ | PartialBasicType _ | BasicType _ | TypedefType _ | SUEType _
   | QualifiedType (_, (TypeofExpr _ | TypeofType _ | PartialBasicType _ | BasicType _ | TypedefType _ | SUEType _)) ->
-      NoType
+      EmptyType
 
   |                     ArrayType (arity, base)		->                     ArrayType (arity, unbase_type base)
   | QualifiedType (tqs, ArrayType (arity, base))	-> QualifiedType (tqs, ArrayType (arity, unbase_type base))

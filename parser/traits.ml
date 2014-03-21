@@ -51,7 +51,7 @@ let traits_of_expr = function
 
 let traits_of_stmt = function
   | DeclarationStatement _
-  | Nop -> empty_position
+  | EmptyStmt -> empty_position
 
   (* Statements *)
   | CompoundStatement (trs, _) ->
@@ -85,7 +85,7 @@ let traits_of_stmt = function
 
 
 let traits_of_type = function
-  | NoType -> empty_position
+  | EmptyType -> empty_position
 
   (* Wildcards *)
   | WildcardType (trs, _) -> trs
@@ -104,7 +104,7 @@ let traits_of_type = function
 
 
 let traits_of_decl = function
-  | NoDecl
+  | EmptyDecl
   | TranslationUnit (_) -> []
 
   (* Wildcards *)
@@ -144,7 +144,7 @@ let traits_of_decl = function
 
 let rec clear_deep_decl =
   let map = List.map in function
-  | NoDecl -> NoDecl
+  | EmptyDecl -> EmptyDecl
   | TranslationUnit (decls) -> TranslationUnit (map clear_deep_decl decls)
 
   (* Wildcards *)
@@ -216,7 +216,7 @@ and clear_deep_expr =
 
 and clear_deep_type =
   let map = List.map in function
-  | NoType -> NoType
+  | EmptyType -> EmptyType
 
   (* Wildcards *)
   | WildcardType (trs, wc) -> WildcardType ([], wc)
@@ -236,7 +236,7 @@ and clear_deep_type =
 
 and clear_deep_stmt =
   let map = List.map in function
-  | Nop -> Nop
+  | EmptyStmt -> EmptyStmt
 
   (* Statements *)
   | CompoundStatement (trs, stmts) -> CompoundStatement ([], map clear_deep_stmt stmts)
@@ -314,7 +314,7 @@ let rec add_attrs atts decl =
   | [] -> decl
   | attrs ->
       match decl with
-      | NoDecl ->
+      | EmptyDecl ->
           IdentifierDeclarator (Attributes.add_attribute (List.flatten attrs) [], "")
       | IdentifierDeclarator (trs, id) ->
           IdentifierDeclarator (Attributes.add_attribute (List.flatten attrs) trs, id)

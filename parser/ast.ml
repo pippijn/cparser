@@ -210,7 +210,7 @@ and asm_argument =
   | AsmArgument of position * (*constraint*)string list * (*expr*)expression
 
 and statement =
-  | Nop
+  | EmptyStmt
   (** Only a semicolon [;]. *)
 
   (* Statements *)
@@ -332,7 +332,7 @@ and expression =
 (** {6 Types} *)
 
 and ctype =
-  | NoType
+  | EmptyType
 
   (* Wildcards *)
   | WildcardType of position * string
@@ -364,7 +364,7 @@ and ctype =
 (** {6 Declarations} *)
 
 and declaration =
-  | NoDecl
+  | EmptyDecl
 
   | TranslationUnit of (*decls*)declaration list
   (** [TranslationUnit (decls)] *)
