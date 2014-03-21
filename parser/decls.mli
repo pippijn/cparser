@@ -16,3 +16,6 @@ val decl_base_type : Ast.declaration -> Ast.declaration
 val finish_decl : Ast.declaration -> Ast.declaration -> Ast.expression option -> Ast.declaration
 
 val return_type : Ast.declaration -> Ast.ctype
+
+val enter_function : Ast.declaration -> unit
+val leave_function : unit -> unit

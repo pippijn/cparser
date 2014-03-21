@@ -20,7 +20,7 @@ let message = function
   | "f(foo foo)" -> function
       | TK_IDENTIFIER		-> "unexpected identifier '%s' after parameter name"
       | TK_TYPEDEF_NAME		-> "unexpected typedef name '%s' after parameter name"
-      				   "(did you intend to write it before the name?)"
+                                  "(did you intend to write it before the name?)"
       | _			-> "unexpected token '%s' after parameter name"
 
   | "a:" -> function
@@ -95,8 +95,10 @@ let message = function
       | _			-> "unexpected '%s'; expected declarator"
 
 
-  | "f(){return 0:"		-> "unexpected '%s' token; expected ';' after return statement"
-  | "f(){return"		-> "expected expression or ';' in return statement"
+  | "f(){return 0:"		-> "unexpected '%s'; expected ';' after return statement"
+  | "f(){return" -> function
+      | TK_TYPEDEF_NAME		-> "unexpected %s; expected expression or ';' in return statement"
+      | _			-> "unexpected '%s'; expected expression or ';' in return statement"
   (* After the "0", we are not in a state related to "return", only, but rather for all statements. *)
   | "f(){return 0"		-> "expected ';' after statement"
 

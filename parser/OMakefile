@@ -35,12 +35,13 @@ OCaml-Sources[] =
   Normalise
   Operator
   Option
-  Parse_util
+  ParseUtil
   Platform
   Predicates
   Printing
   Sclass
   Settings
+  StringParser
   Sue
   Symtab
   Tcheck

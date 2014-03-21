@@ -169,3 +169,21 @@ let finish_decl decl asm init =
 let return_type = function
   | TypedDecl (_, _, FunctionType (retty, _), _, _, _) -> retty
   | decl -> die (Declaration_error ("declaration is not a function", None, [decl]))
+
+
+let enter_function = function
+  | TypedDecl (_, _, FunctionType (_, args), _, _, _) ->
+      Lexer_hack.push_scope ();
+      (* Register all argument names as identifiers in the function's scope. *)
+      List.iter (function
+        | TypedDecl (_, _, _, NoDecl, _, _) ->
+            (* void or ... *)
+            ()
+        | arg ->
+            Lexer_hack.identifier (decl_name arg)
+      ) args
+
+  | decl -> die (Declaration_error ("declaration is not a function", None, [decl]))
+
+
+let leave_function = Lexer_hack.pop_scope

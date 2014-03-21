@@ -309,10 +309,11 @@ let pos_of_decl decl =
   Option.default Location.dummy (Attributes.position_opt (traits_of_decl decl))
 
 
-let rec add_attrs = function
-  | [] -> fun decl -> decl
+let rec add_attrs atts decl =
+  match atts with
+  | [] -> decl
   | attrs ->
-      function
+      match decl with
       | NoDecl ->
           IdentifierDeclarator (Attributes.add_attribute (List.flatten attrs) [], "")
       | IdentifierDeclarator (trs, id) ->
