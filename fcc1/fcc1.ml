@@ -1,5 +1,3 @@
-open Fcc
-
 let main =
   Printexc.record_backtrace true;
   Gc.set {
@@ -8,7 +6,7 @@ let main =
   };
 
   try
-    List.iter compile Settings.files
+    List.iter Fcc.compile Settings.files
   with
-  | ExitStatus status ->
+  | Fcc.ExitStatus status ->
       exit status
