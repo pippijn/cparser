@@ -1,5 +1,3 @@
-open Sexplib.Conv
-
 (** The C abstract syntax definition. *)
 
 (** {6 Basic types during construction in parser} *)
@@ -195,109 +193,95 @@ and pseudo_operator =
   | OP_Alignof			(** "[__alignof (a)]" *)
   deriving (Show)
 
-type attribute = expression Attributes.attribute
+type attribute = expr Attributes.attribute
 
-and annotations = expression Attributes.attributes_position_scope list
+and annotations = expr Attributes.attributes_position_scope list
 and position = Attributes.position list
 and scope_and_position = Attributes.position_scope list
-and scope = Attributes.scope list
-and scope_and_attr = expression Attributes.attributes_scope list
 
 
 (** {6 Statements} *)
 
 and asm_argument =
-  | AsmArgument of position * (*constraint*)string list * (*expr*)expression
+  | AsmArgument of position * (*constraint*)string list * (*expr*)expr
 
-and statement =
+and stmt = {
+  s : stmt_;
+  s_sloc : Location.t;
+}
+
+and stmt_ =
   | EmptyStmt
   (** Only a semicolon [;]. *)
 
   (* Statements *)
-  | CompoundStatement of scope_and_position * (*body*)statement list
-  (** [CompoundStatement (_, body)] *)
-  | ExpressionStatement of position * (*expr*)expression option
-  (** [ExpressionStatement (_, expr)] *)
-  | DeclarationStatement of (*decl*)declaration
-  (** [DeclarationStatement (decl)] *)
+  | CompoundStatement of (*scope*)string * (*body*)stmt list
+  | ExpressionStatement of (*expr*)expr option
+  | DeclarationStatement of (*decl*)decl
 
   (* Labelled statements *)
-  | LabelledStatement of position * (*label*)string * (*stmt*)statement
-  (** [LabelledStatement (_, label, stmt)] *)
-  | LocalLabel of position * (*labels*)string list
-  (** [LocalLabel (_, labels)] *)
-  | CaseStatement of position * (*expr*)expression
-  (** [CaseStatement (_, expr)] *)
-  | DefaultStatement of position
-  (** [DefaultStatement (_)] *)
+  | LabelledStatement of (*label*)string * (*stmt*)stmt
+  | LocalLabel of (*labels*)string list
+  | CaseStatement of (*expr*)expr
+  | DefaultStatement
 
   (* Selection statements *)
-  | IfStatement of position * (*cond*)expression * (*then*)statement * (*else*)statement
-  (** [IfStatement (_, cond, then, else)] *)
-  | SwitchStatement of position * (*expr*)expression * (*cases*)statement
-  (** [SwitchStatement (_, expr, cases)] *)
+  | IfStatement of (*cond*)expr * (*then*)stmt * (*else*)stmt
+  | SwitchStatement of (*expr*)expr * (*cases*)stmt
 
   (* Iteration statements *)
-  | WhileStatement of position * (*cond*)expression * (*body*)statement
-  (** [WhileStatement (_, cond, body)] *)
-  | DoWhileStatement of position * (*body*)statement * (*cond*)expression
-  (** [DoWhileStatement (_, body, cond)] *)
-  | ForStatement of position * (*init*)expression option * (*cond*)expression option * (*next*)expression option * (*body*)statement
-  (** [ForStatement (_, init, cond, next, body)] *)
+  | WhileStatement of (*cond*)expr * (*body*)stmt
+  | DoWhileStatement of (*body*)stmt * (*cond*)expr
+  | ForStatement of (*init*)expr option * (*cond*)expr option * (*next*)expr option * (*body*)stmt
 
   (* Jump statements *)
-  | GotoStatement of position * (*label*)expression
-  (** [GotoStatement (_, label)] *)
-  | ContinueStatement of position
-  (** [ContinueStatement (_)] *)
-  | BreakStatement of position
-  (** [BreakStatement (_)] *)
-  | ReturnStatement of position * (*expr*)expression option
-  (** [ReturnStatement (_, expr)] *)
+  | GotoStatement of (*label*)expr
+  | ContinueStatement
+  | BreakStatement
+  | ReturnStatement of (*expr*)expr option
 
   (* GCC asm statement *)
-  | AsmStatement of position * (*volatile*)bool * (*code*)string list * (*in_regs*)asm_argument list * (*out_regs*)asm_argument list * (*clobber*)string list list * (*labels*)string list
-  (** [AsmStatement (_, volatile, code, in_regs, out_regs, clobber, labels)] *)
+  | AsmStatement of (*volatile*)bool * (*code*)string list * (*in_regs*)asm_argument list * (*out_regs*)asm_argument list * (*clobber*)string list list * (*labels*)string list
 
 
 (** {6 Expressions} *)
 
-and expression =
+and expr =
   | WildcardExpr of position * string
   (** [WildcardExpr (_, wildcard)] *)
 
-  | TypedExpression of (*ty*)ctype * (*value*)Constant.t * (*expr*)expression
-  (** [TypedExpression (type, value, expr)] Expression with type information. *)
+  | TypedExpression of (*ty*)ctyp * (*value*)Constant.t * (*expr*)expr
+  (** [TypedExpression (type, value, expr)] expr with type information. *)
 
-  | TernaryExpression of position * ternary_operator * (*cond*)expression * (*then*)expression option * (*else*)expression
+  | TernaryExpression of position * ternary_operator * (*cond*)expr * (*then*)expr option * (*else*)expr
   (** [TernaryExpression (_, op, cond, then, else)] *)
-  | BinaryExpression of position * binary_operator * (*lhs*)expression * (*rhs*)expression
+  | BinaryExpression of position * binary_operator * (*lhs*)expr * (*rhs*)expr
   (** [BinaryExpression (_, op, lhs, rhs)] *)
-  | UnaryExpression of position * unary_operator * (*expr*)expression
+  | UnaryExpression of position * unary_operator * (*expr*)expr
   (** [UnaryExpression (_, op, expr)] *)
-  | SizeofExpr of position * (*expr*)expression
+  | SizeofExpr of position * (*expr*)expr
   (** [SizeofExpr (_, expr)] *)
-  | SizeofType of position * (*type*)ctype
+  | SizeofType of position * (*type*)ctyp
   (** [SizeofType (_, type)] *)
-  | AlignofExpr of position * (*expr*)expression
+  | AlignofExpr of position * (*expr*)expr
   (** [AlignofExpr (_, expr)] *)
-  | AlignofType of position * (*type*)ctype
+  | AlignofType of position * (*type*)ctyp
   (** [AlignofType (_, expr)] *)
-  | Offsetof of position * (*type*)ctype * (*member*)expression
+  | Offsetof of position * (*type*)ctyp * (*member*)expr
   (** [Offsetof (_, type, member)] *)
-  | TypesCompatibleP of position * (*type1*)ctype * (*type2*)ctype
+  | TypesCompatibleP of position * (*type1*)ctyp * (*type2*)ctyp
   (** [TypesCompatibleP (_, type1, type2)] *)
-  | VaArg of position * (*ap*)expression * (*type*)ctype
+  | VaArg of position * (*ap*)expr * (*type*)ctyp
   (** [VaArg (_, ap, type)] *)
-  | FunctionCall of position * (*callee*)expression * (*args*)expression list
+  | FunctionCall of position * (*callee*)expr * (*args*)expr list
   (** [FunctionCall (_, callee, args)] *)
-  | CompoundLiteral of position * (*type*)ctype * (*init*)expression
+  | CompoundLiteral of position * (*type*)ctyp * (*init*)expr
   (** [CompoundLiteral (_, type, inits)] *)
-  | ArrayAccess of position * (*expr*)expression * (*index*)expression
+  | ArrayAccess of position * (*expr*)expr * (*index*)expr
   (** [ArrayAccess (_, expr, index)] *)
-  | MemberAccess of position * (*expr*)expression * (*member*)string
+  | MemberAccess of position * (*expr*)expr * (*member*)string
   (** [MemberAccess (_, expr, member)] *)
-  | PointerAccess of position * (*expr*)expression * (*member*)string
+  | PointerAccess of position * (*expr*)expr * (*member*)string
   (** [PointerAccess (_, expr, member)] *)
 
   (* Primary expression *)
@@ -311,27 +295,27 @@ and expression =
   (** [CharLiteral (_, kind, character)] *)
   | StringLiteral of position * string_literal_kind * string list
   (** [StringLiteral (_, kind, strings)] *)
-  | BraceExpression of position * (*stmt*)statement
+  | BraceExpression of position * (*stmt*)stmt
   (** [BraceExpression (_, stmt)] *)
 
   (* Cast expression *)
-  | Cast of position * (*type*)ctype * (*expr*)expression
+  | Cast of position * (*type*)ctyp * (*expr*)expr
   (** [Cast (_, type, expr)] *)
 
   (* Initialisers *)
-  | InitialiserList of position * (*inits*)expression list
+  | InitialiserList of position * (*inits*)expr list
   (** [InitialiserList (_, inits)] *)
   | MemberDesignator of (*member*)string list
   (** [MemberDesignator (_, member)] *)
-  | ArrayLabelledInitialiser of position * (*index*)expression * (*init*)expression
+  | ArrayLabelledInitialiser of position * (*index*)expr * (*init*)expr
   (** [ArrayLabelledInitialiser (_, index, init)] *)
-  | DesignatedInitialiser of position * (*designator*)expression * (*init*)expression
+  | DesignatedInitialiser of position * (*designator*)expr * (*init*)expr
   (** [DesignatedInitialiser (_, designator, init)] *)
 
 
 (** {6 Types} *)
 
-and ctype =
+and ctyp =
   | EmptyType
 
   (* Wildcards *)
@@ -343,30 +327,30 @@ and ctype =
   (** [PartialBasicType (basics)] *)
   | BasicType of basic_type
   (** [BasicType (basic)] *)
-  | QualifiedType of Tqual.type_qualifiers * (*unqual*)ctype
+  | QualifiedType of Tqual.type_qualifiers * (*unqual*)ctyp
   (** [QualifiedType (tqs, unqual)] *)
-  | PointerType of (*base*)ctype
+  | PointerType of (*base*)ctyp
   (** [PointerType (base)] *)
-  | SUEType of annotations * sue_kind * (*tag*)string * (*members*)declaration list
+  | SUEType of annotations * sue_kind * (*tag*)string * (*members*)decl list
   (** [SUEType (_, kind, tag, members)] *)
   | TypedefType of (*name*)string
   (** [TypedefType (name)] *)
-  | ArrayType of (*arity*)expression option * (*base*)ctype
+  | ArrayType of (*arity*)expr option * (*base*)ctyp
   (** [ArrayType (arity, base)] *)
-  | FunctionType of (*rettype*)ctype * (*params*)declaration list
+  | FunctionType of (*rettype*)ctyp * (*params*)decl list
   (** [FunctionType (rettype, params)] *)
-  | TypeofExpr of (*expr*)expression
+  | TypeofExpr of (*expr*)expr
   (** [TypeofExpr (expr)] *)
-  | TypeofType of (*ty*)ctype
+  | TypeofType of (*ty*)ctyp
   (** [TypeofType (type)] *)
 
 
 (** {6 Declarations} *)
 
-and declaration =
+and decl =
   | EmptyDecl
 
-  | TranslationUnit of (*decls*)declaration list
+  | TranslationUnit of (*decls*)decl list
   (** [TranslationUnit (decls)] *)
 
   (* Wildcards *)
@@ -374,7 +358,7 @@ and declaration =
   (** [WildcardDecl (_, wildcard)] *)
 
   (* Syntax errors *)
-  | SyntaxError of position * (*msg*)string * (*node*)declaration
+  | SyntaxError of position * (*msg*)string * (*node*)decl
   (** [SyntaxError (_, msg, node)] *)
 
   (* #include etc. *)
@@ -388,19 +372,19 @@ and declaration =
   (* Declarations *)
   | AsmSpecifier of position * (*register*)string list
   (** [AsmSpecifier (_, register)] *)
-  | FunctionDefinition of position * (*decl*)declaration * (*body*)statement
+  | FunctionDefinition of position * (*decl*)decl * (*body*)stmt
   (** [FunctionDefinition (_, decl, body)] *)
   | IdentifierDeclarator of annotations * (*id*)string
   (** [IdentifierDeclarator (_, id)] *)
-  | StructDeclarator of position * (*decl*)declaration * (*bitfield*)expression option
+  | StructDeclarator of position * (*decl*)decl * (*bitfield*)expr option
   (** [StructDeclarator (_, decl, bitfield)] *)
-  | TypedDecl of scope_and_position * Sclass.storage_classes * (*type*)ctype * (*untyped*)declaration * (*asm*)declaration * (*init*)expression option
+  | TypedDecl of scope_and_position * Sclass.storage_classes * (*type*)ctyp * (*untyped*)decl * (*asm*)decl * (*init*)expr option
   (** [TypedDecl (_, storage_classes, type, untyped_decl, asm, init)] *)
-  | DeclaringList of position * (*decls*)declaration list
+  | DeclaringList of position * (*decls*)decl list
   (** [DeclaringList (_, decls)] *)
 
   (* Struct/union/enum types *)
-  | Enumerator of position * (*id*)string * (*value*)expression option
+  | Enumerator of position * (*id*)string * (*value*)expr option
   (** [Enumerator (_, id, value)] *)
   deriving (Show)
 
@@ -408,12 +392,12 @@ and declaration =
 (** {6 Main exception type} *)
 
 type error =
-  | Expression_error of string * string option * expression list
-  | Statement_error of string * string option * statement list
-  | Type_error of string * string option * ctype list
-  | Declaration_error of string * string option * declaration list
+  | Expression_error of string * string option * expr list
+  | Statement_error of string * string option * stmt list
+  | Type_error of string * string option * ctyp list
+  | Declaration_error of string * string option * decl list
 
-  | Parse_error of string * declaration
+  | Parse_error of string * decl
   | Unimplemented of string
 
 exception ASTError of error

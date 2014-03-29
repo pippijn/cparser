@@ -95,52 +95,53 @@ and opt_verify_declr c = function
   | n -> verify_declr c n
 
 and opt_verify_stmt = function
-  | EmptyStmt -> []
+  | { s = EmptyStmt } -> []
   | n -> verify_stmt n
 
 
-and verify_stmt = function
+and verify_stmt stmt =
+  match stmt.s with
   (*** STATEMENTS ***)
   | CompoundStatement (_, stmts) ->
       forall verify_stmt stmts
-  | ExpressionStatement (_, expr) ->
+  | ExpressionStatement (expr) ->
       opt verify_expr expr
   | DeclarationStatement (decl) ->
       verify_decl Other decl
-  | IfStatement (_, cond, then_stmt, else_stmt) ->
+  | IfStatement (cond, then_stmt, else_stmt) ->
       verify_expr cond @
       verify_stmt then_stmt @
       opt_verify_stmt else_stmt
-  | SwitchStatement (_, cond, body)
-  | WhileStatement (_, cond, body)
-  | DoWhileStatement (_, body, cond) ->
+  | SwitchStatement (cond, body)
+  | WhileStatement (cond, body)
+  | DoWhileStatement (body, cond) ->
       verify_stmt body @
       verify_expr cond
-  | ForStatement (_, init, cond, next, body) ->
+  | ForStatement (init, cond, next, body) ->
       forall (opt verify_expr) [init; cond; next] @
       verify_stmt body
-  | CaseStatement (_, expr) ->
+  | CaseStatement (expr) ->
       verify_expr expr
-  | DefaultStatement _
-  | BreakStatement _
-  | ContinueStatement _ ->
+  | DefaultStatement
+  | BreakStatement
+  | ContinueStatement ->
       []
-  | ReturnStatement (_, expr) ->
+  | ReturnStatement (expr) ->
       opt verify_expr expr
-  | LabelledStatement (_, "", _) as node ->
-      bad_stmt "empty label" node
-  | GotoStatement (_, label) ->
+  | LabelledStatement ("", _) ->
+      bad_stmt "empty label" stmt
+  | GotoStatement (label) ->
       verify_expr label
-  | LabelledStatement (_, label, stmt) ->
+  | LabelledStatement (label, stmt) ->
       opt_verify_stmt stmt
-  | LocalLabel (_, labels) as node ->
-      forall (function "" -> bad_stmt "empty label" node | _ -> []) labels
-  | AsmStatement (_, volatile, code, in_regs, out_regs, clobber, labels) ->
+  | LocalLabel (labels) ->
+      forall (function "" -> bad_stmt "empty label" stmt | _ -> []) labels
+  | AsmStatement (volatile, code, in_regs, out_regs, clobber, labels) ->
       let verify (AsmArgument (_, constr, expr)) = verify_expr expr in
       forall verify in_regs @
       forall verify out_regs
 
-  | n -> bad_stmt "verify_stmt" n
+  | _ -> bad_stmt "verify_stmt" stmt
 
 
 

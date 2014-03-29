@@ -1,6 +1,6 @@
 type csym =
-  | Decl of Ast.declaration
-  | Type of Ast.ctype
+  | Decl of Ast.decl
+  | Type of Ast.ctyp
 
 
 let decl_of_csym = function

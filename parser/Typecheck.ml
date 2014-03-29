@@ -192,7 +192,7 @@ let check_arithmetic op lhs rhs =
 
 type env = {
   (* Enclosing function. *)
-  func : Ast.declaration option;
+  func : Ast.decl option;
 }
 
 
@@ -295,31 +295,36 @@ and tcheck_decl env = function
 (* }}} *)
 (* {{{ tcheck_stmt *)
 
-and tcheck_stmt env = function
+and tcheck_stmt env stmt =
+  match stmt.s with
   (* Handle CompoundStatement before [map_stmt] so we can enter its scope. *)
-  | CompoundStatement (trs, _) as n ->
-      Csymtab.enter_scope (Attributes.scope trs);
-      let n = Visit.map_stmt (tcheck_struct env) n in
+  | CompoundStatement (scope, _) ->
+      Csymtab.enter_scope scope;
+      let stmt = Visit.map_stmt (tcheck_struct env) stmt in
       Csymtab.leave_scope ();
-      n
+      stmt
 
-  | n ->
-      match Visit.map_stmt (tcheck_struct env) n with
-      | ExpressionStatement _ as n -> n
+  | _ ->
+      let stmt = Visit.map_stmt (tcheck_struct env) stmt in
+      match stmt.s with
+      | ExpressionStatement _ -> stmt
 
-      | ReturnStatement (trs, None) as n ->
+      | ReturnStatement (None) ->
           let retty = Decls.return_type (Option.get env.func) in
           if not (Type.is_void retty) then
-            die (Statement_error ("non-void function should return a value", None, [n]));
-          n
+            die (Statement_error ("non-void function should return a value",
+                                  None, [stmt]));
+          stmt
 
-      | ReturnStatement (trs, Some expr) ->
+      | ReturnStatement (Some expr) ->
           let retty = Decls.return_type (Option.get env.func) in
           if Type.is_void retty then
             die (Expression_error ("void function should not return a value", None, [expr]));
-          ReturnStatement (trs, Some (Conversions.return expr retty))
+          { stmt with
+            s = ReturnStatement (Some (Conversions.return expr retty)) }
 
-      | n -> die (Statement_error ("unhandled statement in type check", None, [n]))
+      | _ -> die (Statement_error ("unhandled statement in type check", None,
+                                   [stmt]))
 
 (* }}} *)
 (* {{{ tcheck_expr *)

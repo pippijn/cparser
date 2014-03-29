@@ -30,11 +30,11 @@ let handle_return = function
 
 type result =
   | TokenList of C_tokens.token list
-  | AST_Decl of Ast.declaration
-  | AST_Expr of Ast.expression
-  | AST_Stmt of Ast.statement
-  | AST_Type of Ast.ctype
-  | AST_Unit of Ast.declaration
+  | AST_Decl of Ast.decl
+  | AST_Expr of Ast.expr
+  | AST_Stmt of Ast.stmt
+  | AST_Type of Ast.ctyp
+  | AST_Unit of Ast.decl
 
 
 (********************
@@ -364,7 +364,7 @@ let compile file =
         if Settings.validate then
           begin match process_string (parse Settings.EP_Unit) (Codegen.code_of_unit tu) with
           | AST_Unit (tu2) ->
-              if Traits.clear_deep_decl tu2 <> Traits.clear_deep_decl tu then
+              if tu2 <> tu then
                 Ast.die (Ast.Parse_error ("reparsing yielded different tree", tu2))
           | _ -> raise ExPervasives.Impossible
           end

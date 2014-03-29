@@ -6,10 +6,10 @@ open Ast
 let iter = List.iter
 
 type iter_struct = {
-  iter_type : Ast.ctype -> unit;
-  iter_expr : Ast.expression -> unit;
-  iter_stmt : Ast.statement -> unit;
-  iter_decl : Ast.declaration -> unit;
+  iter_type : Ast.ctyp -> unit;
+  iter_expr : Ast.expr -> unit;
+  iter_stmt : Ast.stmt -> unit;
+  iter_decl : Ast.decl -> unit;
 }
 
 
@@ -17,37 +17,37 @@ let opt = Option.may
 
 
 let iter_stmt { iter_type; iter_expr; iter_stmt; iter_decl } node =
-  match node with
+  match node.s with
   | EmptyStmt -> ()
 
   (* Statements *)
   | CompoundStatement (_, stmts) -> iter iter_stmt stmts
-  | ExpressionStatement (_, expr) -> opt iter_expr expr
+  | ExpressionStatement (expr) -> opt iter_expr expr
   | DeclarationStatement (decl) -> iter_decl decl
 
   (* Labelled statements *)
-  | LabelledStatement (_, _, stmt) -> iter_stmt stmt
+  | LabelledStatement (_, stmt) -> iter_stmt stmt
   | LocalLabel _ -> ()
-  | CaseStatement (_, expr) -> iter_expr expr
-  | DefaultStatement _ -> ()
+  | CaseStatement (expr) -> iter_expr expr
+  | DefaultStatement -> ()
 
   (* Selection statements *)
-  | IfStatement (_, cond, then_stmt, else_stmt) -> iter_expr cond; iter_stmt then_stmt; iter_stmt else_stmt
-  | SwitchStatement (_, expr, cases) -> iter_expr expr; iter_stmt cases
+  | IfStatement (cond, then_stmt, else_stmt) -> iter_expr cond; iter_stmt then_stmt; iter_stmt else_stmt
+  | SwitchStatement (expr, cases) -> iter_expr expr; iter_stmt cases
 
   (* Iteration statements *)
-  | WhileStatement (_, cond, body) -> iter_expr cond; iter_stmt body
-  | DoWhileStatement (_, body, cond) -> iter_stmt body; iter_expr cond
-  | ForStatement (_, init, cond, next, body) -> opt iter_expr init; opt iter_expr cond; opt iter_expr next; iter_stmt body
+  | WhileStatement (cond, body) -> iter_expr cond; iter_stmt body
+  | DoWhileStatement (body, cond) -> iter_stmt body; iter_expr cond
+  | ForStatement (init, cond, next, body) -> opt iter_expr init; opt iter_expr cond; opt iter_expr next; iter_stmt body
 
   (* Jump statements *)
   | GotoStatement _ -> ()
-  | ContinueStatement _ -> ()
-  | BreakStatement _ -> ()
-  | ReturnStatement (_, expr) -> opt iter_expr expr
+  | ContinueStatement -> ()
+  | BreakStatement -> ()
+  | ReturnStatement (expr) -> opt iter_expr expr
 
   (* GCC asm statement *)
-  | AsmStatement (_, volatile, code, in_args, out_args, clobber, labels) ->
+  | AsmStatement (volatile, code, in_args, out_args, clobber, labels) ->
       let iter_arg (AsmArgument (_, constr, expr)) = iter_expr expr in
       iter iter_arg in_args;
       iter iter_arg out_args
@@ -151,10 +151,10 @@ let iter_decl { iter_type; iter_expr; iter_stmt; iter_decl } node =
 let map = List.map
 
 type map_struct = {
-  map_type : Ast.ctype -> Ast.ctype;
-  map_expr : Ast.expression -> Ast.expression;
-  map_stmt : Ast.statement -> Ast.statement;
-  map_decl : Ast.declaration -> Ast.declaration;
+  map_type : Ast.ctyp -> Ast.ctyp;
+  map_expr : Ast.expr -> Ast.expr;
+  map_stmt : Ast.stmt -> Ast.stmt;
+  map_decl : Ast.decl -> Ast.decl;
 }
 
 
@@ -162,39 +162,42 @@ let opt = Option.map
 
 
 let map_stmt { map_type; map_expr; map_stmt; map_decl } node =
-  match node with
-  | EmptyStmt -> node
+  { node with
+    s =
+      match node.s with
+      | EmptyStmt -> EmptyStmt
 
-  (* Statements *)
-  | CompoundStatement (trs, stmts) -> CompoundStatement (trs, map map_stmt stmts)
-  | ExpressionStatement (trs, expr) -> ExpressionStatement (trs, opt map_expr expr)
-  | DeclarationStatement (decl) -> DeclarationStatement (map_decl decl)
+                       (* Statements *)
+      | CompoundStatement (scope, stmts) -> CompoundStatement (scope, map map_stmt stmts)
+      | ExpressionStatement (expr) -> ExpressionStatement (opt map_expr expr)
+      | DeclarationStatement (decl) -> DeclarationStatement (map_decl decl)
 
-  (* Labelled statements *)
-  | LabelledStatement (trs, label, stmt) -> LabelledStatement (trs, label, map_stmt stmt)
-  | LocalLabel _ -> node
-  | CaseStatement (trs, expr) -> CaseStatement (trs, map_expr expr)
-  | DefaultStatement _ -> node
+                                         (* Labelled statements *)
+      | LabelledStatement (label, stmt) -> LabelledStatement (label, map_stmt stmt)
+      | LocalLabel _ -> node.s
+      | CaseStatement (expr) -> CaseStatement (map_expr expr)
+      | DefaultStatement -> node.s
 
-  (* Selection statements *)
-  | IfStatement (trs, cond, then_stmt, else_stmt) -> IfStatement (trs, map_expr cond, map_stmt then_stmt, map_stmt else_stmt)
-  | SwitchStatement (trs, expr, cases) -> SwitchStatement (trs, map_expr expr, map_stmt cases)
+                                (* Selection statements *)
+      | IfStatement (cond, then_stmt, else_stmt) -> IfStatement (map_expr cond, map_stmt then_stmt, map_stmt else_stmt)
+      | SwitchStatement (expr, cases) -> SwitchStatement (map_expr expr, map_stmt cases)
 
-  (* Iteration statements *)
-  | WhileStatement (trs, cond, body) -> WhileStatement (trs, map_expr cond, map_stmt body)
-  | DoWhileStatement (trs, body, cond) -> DoWhileStatement (trs, map_stmt body, map_expr cond)
-  | ForStatement (trs, init, cond, next, body) -> ForStatement (trs, opt map_expr init, opt map_expr cond, opt map_expr next, map_stmt body)
+                                                (* Iteration statements *)
+      | WhileStatement (cond, body) -> WhileStatement (map_expr cond, map_stmt body)
+      | DoWhileStatement (body, cond) -> DoWhileStatement (map_stmt body, map_expr cond)
+      | ForStatement (init, cond, next, body) -> ForStatement (opt map_expr init, opt map_expr cond, opt map_expr next, map_stmt body)
 
-  (* Jump statements *)
-  | GotoStatement _ -> node
-  | ContinueStatement _ -> node
-  | BreakStatement _ -> node
-  | ReturnStatement (trs, expr) -> ReturnStatement (trs, opt map_expr expr)
+                                                        (* Jump statements *)
+      | GotoStatement _ -> node.s
+      | ContinueStatement -> node.s
+      | BreakStatement -> node.s
+      | ReturnStatement (expr) -> ReturnStatement (opt map_expr expr)
 
-  (* GCC asm statement *)
-  | AsmStatement (trs, volatile, code, in_args, out_args, clobber, labels) ->
-      let map_arg (AsmArgument (trs, constr, expr)) = AsmArgument (trs, constr, map_expr expr) in
-      AsmStatement (trs, volatile, code, map map_arg in_args, map map_arg out_args, clobber, labels)
+                                         (* GCC asm statement *)
+      | AsmStatement (volatile, code, in_args, out_args, clobber, labels) ->
+          let map_arg (AsmArgument (trs, constr, expr)) = AsmArgument (trs, constr, map_expr expr) in
+          AsmStatement (volatile, code, map map_arg in_args, map map_arg out_args, clobber, labels)
+  }
 
 
 let map_expr { map_type; map_expr; map_stmt; map_decl } = function
@@ -293,10 +296,10 @@ let map_decl { map_type; map_expr; map_stmt; map_decl } node =
 let fold_left = List.fold_left
 
 type 'a fold_struct = {
-  fold_type : 'a -> Ast.ctype -> 'a;
-  fold_expr : 'a -> Ast.expression -> 'a;
-  fold_stmt : 'a -> Ast.statement -> 'a;
-  fold_decl : 'a -> Ast.declaration -> 'a;
+  fold_type : 'a -> Ast.ctyp -> 'a;
+  fold_expr : 'a -> Ast.expr -> 'a;
+  fold_stmt : 'a -> Ast.stmt -> 'a;
+  fold_decl : 'a -> Ast.decl -> 'a;
 }
 
 
@@ -306,42 +309,42 @@ let (|>) x (f, a) = f x a
 
 
 let fold_stmt { fold_type; fold_expr; fold_stmt; fold_decl } data node =
-  match node with
+  match node.s with
   | EmptyStmt -> data
 
   (* Statements *)
   | CompoundStatement (_, stmts) -> fold_left fold_stmt data stmts
-  | ExpressionStatement (_, expr) -> opt fold_expr data expr
+  | ExpressionStatement (expr) -> opt fold_expr data expr
   | DeclarationStatement (decl) -> fold_decl data decl
 
   (* Labelled statements *)
-  | LabelledStatement (_, label, stmt) -> fold_stmt data stmt
+  | LabelledStatement (label, stmt) -> fold_stmt data stmt
   | LocalLabel _ -> data
-  | CaseStatement (_, expr) -> fold_expr data expr
-  | DefaultStatement _ -> data
+  | CaseStatement (expr) -> fold_expr data expr
+  | DefaultStatement -> data
 
   (* Selection statements *)
-  | IfStatement (_, cond, then_stmt, else_stmt) ->
+  | IfStatement (cond, then_stmt, else_stmt) ->
       data |> (fold_expr, cond) |> (fold_stmt, then_stmt) |> (fold_stmt, else_stmt)
-  | SwitchStatement (_, expr, cases) ->
+  | SwitchStatement (expr, cases) ->
       data |> (fold_expr, expr) |> (fold_stmt, cases)
 
   (* Iteration statements *)
-  | WhileStatement (_, cond, body) ->
+  | WhileStatement (cond, body) ->
       data |> (fold_expr, cond) |> (fold_stmt, body)
-  | DoWhileStatement (_, body, cond) ->
+  | DoWhileStatement (body, cond) ->
       data |> (fold_stmt, body) |> (fold_expr, cond)
-  | ForStatement (_, init, cond, next, body) ->
+  | ForStatement (init, cond, next, body) ->
       data |> (opt fold_expr, init) |> (opt fold_expr, cond) |> (opt fold_expr, next) |> (fold_stmt, body)
 
   (* Jump statements *)
   | GotoStatement _ -> data
-  | ContinueStatement _ -> data
-  | BreakStatement _ -> data
-  | ReturnStatement (_, expr) -> opt fold_expr data expr
+  | ContinueStatement -> data
+  | BreakStatement -> data
+  | ReturnStatement (expr) -> opt fold_expr data expr
 
   (* GCC asm statement *)
-  | AsmStatement (_, volatile, code, in_args, out_args, clobber, labels) ->
+  | AsmStatement (volatile, code, in_args, out_args, clobber, labels) ->
       let fold_arg data (AsmArgument (_, constr, expr)) = fold_expr data expr in
       let fold = fold_left fold_arg in
       data |> (fold, in_args) |> (fold, out_args)

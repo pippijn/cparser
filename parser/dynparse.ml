@@ -64,7 +64,7 @@ let parse wcols code sexp output error missing =
     Csymtab.reset ();
     let tu = parse_string code in
 
-    sexp (Ast.Show_declaration.show (Traits.clear_deep_decl tu));
+    sexp (Ast.Show_decl.show tu);
     output (Codegen.code_of_unit tu);
 
     let tu =
@@ -74,7 +74,7 @@ let parse wcols code sexp output error missing =
         tu
     in
 
-    sexp (Ast.Show_declaration.show (Traits.clear_deep_decl tu));
+    sexp (Ast.Show_decl.show tu);
     output (Codegen.code_of_unit tu);
 
   with
@@ -105,22 +105,23 @@ let parse wcols code sexp output error missing =
       in
 
       begin
+        let open Ast in
         let open Traits in
         let open Codegen in
         match e with
-        | Ast.Expression_error (e, section, exprs) ->
+        | Expression_error (e, section, exprs) ->
             error (format_error pos_of_expr code_of_expr e exprs)
-        | Ast.Declaration_error (e, section, decls) ->
+        | Declaration_error (e, section, decls) ->
             error (format_error pos_of_decl code_of_decl e decls)
-        | Ast.Type_error (e, section, types) ->
+        | Type_error (e, section, types) ->
             error (format_error pos_of_type code_of_type e types)
-        | Ast.Statement_error (e, section, stmts) ->
-            error (format_error pos_of_stmt code_of_stmt e stmts)
+        | Statement_error (e, section, stmts) ->
+            error (format_error (fun stmt -> stmt.s_sloc) code_of_stmt e stmts)
 
-        | Ast.Parse_error (e, decl) ->
+        | Parse_error (e, decl) ->
             error (format_error pos_of_decl code_of_decl e [decl])
 
-        | Ast.Unimplemented (e) ->
+        | Unimplemented (e) ->
             error (e)
       end
   | exn ->

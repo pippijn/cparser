@@ -4,10 +4,14 @@ open Ast
 let assign_names tu =
   let count = ref 0 in
 
-  let update trs nm =
-    let trs = Attributes.set_scope (nm ^ "#" ^ string_of_int !count) trs in
+  let next_name nm =
+    let name = nm ^ "#" ^ string_of_int !count in
     count := !count + 1;
-    trs
+    name
+  in
+
+  let update trs nm =
+    Attributes.set_scope (next_name nm) trs
   in
 
 
@@ -42,14 +46,15 @@ let assign_names tu =
     | n -> Visit.map_expr (assign_names_struct nm) n
 
 
-  and assign_names_stmt nm =
+  and assign_names_stmt nm stmt =
     let resume nm = Visit.map_stmt (assign_names_struct nm) in
 
-    function
-    | CompoundStatement (trs, stmts) ->
-        let trs = update trs nm in
-        CompoundStatement (trs, List.map (assign_names_stmt nm) stmts)
-    | n -> resume nm n
+    match stmt.s with
+    | CompoundStatement (scope, stmts) ->
+        let scope = next_name nm in
+        { stmt with
+          s = CompoundStatement (scope, List.map (assign_names_stmt nm) stmts) }
+    | _ -> resume nm stmt
 
 
   and assign_names_type nm = function

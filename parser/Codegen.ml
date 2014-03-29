@@ -10,11 +10,11 @@ type decl_context =
 
 
 type node_kind =
-  | Type of ctype
-  | Decl of declaration
-  | Stmt of statement
-  | Unit of declaration
-  | Expr of expression
+  | Type of ctyp
+  | Decl of decl
+  | Stmt of stmt
+  | Unit of decl
+  | Expr of expr
 
 
 type context = {
@@ -156,7 +156,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
 
   (* Statements *)
   and output_stmt node =
-    let pos = Traits.pos_of_stmt node in
+    let pos = node.s_sloc in
     let output_start_pos () =  pl true  (fst pos) in
     let output_end_pos = lazy (pl false (snd pos)) in
 
@@ -170,33 +170,33 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
     let output_expr = output_expr Operator.highest in
 
     output_start_pos ();
-    begin match node with
+    begin match node.s with
     | CompoundStatement (_, stmts) ->
         p "{";
         iter output_stmt stmts;
         Lazy.force output_end_pos;
         p "}"
-    | IfStatement (_, cond, then_stmt, EmptyStmt) ->
+    | IfStatement (cond, then_stmt, { s = EmptyStmt }) ->
         t KW_IF;
         p "("; output_expr cond; p ")";
         output_stmt then_stmt
-    | IfStatement (_, cond, then_stmt, else_stmt) ->
+    | IfStatement (cond, then_stmt, else_stmt) ->
         t KW_IF;
         p "("; output_expr cond; p ")";
         output_stmt then_stmt;
         t KW_ELSE;
         output_stmt else_stmt
-    | DoWhileStatement (_, body, cond) ->
+    | DoWhileStatement (body, cond) ->
         t KW_DO;
         output_stmt body;
         t KW_WHILE;
         p "("; output_expr cond; p ")";
         p ";"
-    | WhileStatement (_, cond, body) ->
+    | WhileStatement (cond, body) ->
         t KW_WHILE;
         p "("; output_expr cond; p ")";
         output_stmt body
-    | ForStatement (_, init, cond, next, body) ->
+    | ForStatement (init, cond, next, body) ->
         t KW_FOR;
         p "(";
         opt output_expr init;
@@ -206,36 +206,36 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         opt output_expr next;
         p ")";
         output_stmt body
-    | SwitchStatement (_, expr, cases) ->
+    | SwitchStatement (expr, cases) ->
         t KW_SWITCH;
         p "("; output_expr expr; p ")";
         p "{"; output_stmt cases; p "}"
-    | CaseStatement (_, expr) ->
+    | CaseStatement (expr) ->
         t KW_CASE; output_expr expr; p ":"
-    | DefaultStatement (_) ->
+    | DefaultStatement ->
         t KW_DEFAULT; p ":"
-    | LabelledStatement (_, label, stmt) ->
+    | LabelledStatement (label, stmt) ->
         p label; p ":"; output_stmt stmt
-    | LocalLabel (_, labels) ->
+    | LocalLabel (labels) ->
         t KW_LABEL; l "," labels; p ";"
-    | GotoStatement (_, Identifier (_, label)) ->
+    | GotoStatement (Identifier (_, label)) ->
         t KW_GOTO; p label; p ";"
     (* special case for computed goto *)
-    | GotoStatement (_, UnaryExpression (_, OP_Dereference, expr)) ->
+    | GotoStatement (UnaryExpression (_, OP_Dereference, expr)) ->
         t KW_GOTO; p "*"; output_expr expr; p ";"
-    | GotoStatement (_, _) as goto ->
-        die (Statement_error ("invalid argument to `goto'", None, [goto]))
-    | BreakStatement (_) ->
+    | GotoStatement (_) ->
+        die (Statement_error ("invalid argument to `goto'", None, [node]))
+    | BreakStatement ->
         t KW_BREAK; p ";"
-    | ContinueStatement (_) ->
+    | ContinueStatement ->
         t KW_CONTINUE; p ";"
-    | ReturnStatement (_, expr) ->
+    | ReturnStatement expr ->
         t KW_RETURN; opt output_expr expr; p ";"
-    | ExpressionStatement (_, expr) ->
+    | ExpressionStatement expr ->
         opt output_expr expr; p ";"
-    | DeclarationStatement (decl) ->
+    | DeclarationStatement decl ->
         output_node decl
-    | AsmStatement (_, volatile, code, in_regs, out_regs, clobber, labels) ->
+    | AsmStatement (volatile, code, in_regs, out_regs, clobber, labels) ->
         let output_asm_arg (AsmArgument (_, constr, expr)) =
           iter p constr;
           p "("; output_expr expr; p ")"
@@ -263,7 +263,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         p ")";
         p ";"
 
-    | EmptyStmt -> die (Statement_error ("output_stmt", None, [EmptyStmt]))
+    | EmptyStmt -> die (Statement_error ("output_stmt", None, [node]))
     end;
     Lazy.force output_end_pos
 
