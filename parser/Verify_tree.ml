@@ -70,7 +70,7 @@ let rec verify_node c node =
       (* type of function definitions is a function type *)
       let rec verify ty =
         match ty.d with
-        | TypedDecl (_, _, (FunctionType _ as ty), _, _, _) ->
+        | TypedDecl (_, _, ({ t = FunctionType _ } as ty), _, _, _) ->
             verify_type ty
         | _ -> bad_decl "function definition does not have function type" ty
       in
@@ -240,14 +240,15 @@ and verify_expr expr =
       verify_type ty2
 
 
-and verify_type = function
-  | EmptyType -> bad_type "empty type" EmptyType
+and verify_type node =
+  match node.t with
+  | EmptyType -> bad_type "empty type" node
 
   | WildcardType _ -> []
 
   (*** TYPES ***)
 
-  | PartialBasicType [] as node -> bad_type "empty basic type" node
+  | PartialBasicType [] -> bad_type "empty basic type" node
   | PartialBasicType _ -> []
 
   | BasicType _ -> []
@@ -263,7 +264,7 @@ and verify_type = function
       verify_tq tqs @
       verify_type base
 
-  | TypedefType "" as node -> bad_type "empty typedef type name" node
+  | TypedefType "" -> bad_type "empty typedef type name" node
   | TypedefType name -> []
 
   | TypeofType (ty) ->

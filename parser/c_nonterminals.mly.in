@@ -4,15 +4,17 @@ open ParseUtil
 open Sclass
 open Tqual
 
-let desg dg_sloc dg = { dg; dg_sloc }
-let decl  d_sloc  d = {  d;  d_sloc }
-let stmt  s_sloc  s = {  s;  s_sloc }
-let expr  e_sloc  e = {  e;  e_sloc }
+let desg dg_sloc dg = { dg; dg_sloc; }
+let decl  d_sloc  d = {  d;  d_sloc; }
+let stmt  s_sloc  s = {  s;  s_sloc; }
+let expr  e_sloc  e = {  e;  e_sloc; }
+let ctyp  t_sloc  t = {  t;  t_sloc; }
 
 #define mkdesg	desg ($startpos, $endpos)
 #define mkdecl	decl ($startpos, $endpos)
 #define mkstmt	stmt ($startpos, $endpos)
 #define mkexpr	expr ($startpos, $endpos)
+#define mkctyp	ctyp ($startpos, $endpos)
 %}
 
 %nonassoc KW_IF
@@ -140,14 +142,14 @@ old_function_declarator:
 	| postfix_old_function_declarator
 		{ $1 }
 	| TK_STAR attribute* old_function_declarator
-		{ attr $2 (Decls.set_base_type $3 (PointerType (EmptyType))) }
+		{ attr $2 (Decls.set_base_type $3 (mkctyp @@ PointerType (mkctyp @@ EmptyType))) }
 	| TK_STAR attribute* pointer_type_qualifier+ old_function_declarator
-		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (PointerType (EmptyType)) $3)) }
+		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (mkctyp @@ PointerType (mkctyp @@ EmptyType)) $3)) }
 
 
 postfix_old_function_declarator:
 	| paren_identifier_declarator TK_LBRACK sep(TK_COMMA, simple_identifier_declarator) TK_RBRACK
-		{ mkdecl @@ TypedDecl ("", Sclass.empty, FunctionType (EmptyType, List.map (fun id -> Decls.set_base_type id default_int) $3), $1, Decls.empty, None) }
+		{ mkdecl @@ TypedDecl ("", Sclass.empty, mkctyp @@ FunctionType (mkctyp @@ EmptyType, List.map (fun id -> Decls.set_base_type id default_int) $3), $1, Decls.empty, None) }
 	| TK_LBRACK attribute* old_function_declarator TK_RBRACK
 		{ attr $2 $3 }
 	| TK_LBRACK attribute* old_function_declarator TK_RBRACK postfixing_abstract_declarator
@@ -245,7 +247,7 @@ declaration_specifier_nosue:
 	| basic_declaration_specifier	{ $1 }
 	| typedef_declaration_specifier	{ $1 }
 	| typeof_declaration_specifier	{ $1 }
-	| WC_TYPE			{ mkdecl @@ TypedDecl ("", Sclass.empty, WildcardType $1, Decls.empty, Decls.empty, None) }
+	| WC_TYPE			{ mkdecl @@ TypedDecl ("", Sclass.empty, mkctyp @@ WildcardType $1, Decls.empty, Decls.empty, None) }
 
 
 basic_declaration_specifier:
@@ -281,16 +283,16 @@ typedef_declaration_specifier:
 	| typedef_type_specifier storage_class
 		{ mkdecl @@ TypedDecl ("", Sclass.add Sclass.empty $2, $1, Decls.empty, Decls.empty, None) }
 	| declaration_qualifier_list TK_TYPEDEF_NAME
-		{ Decls.set_base_type $1 (TypedefType $2) }
+		{ Decls.set_base_type $1 (mkctyp @@ TypedefType $2) }
 	| typedef_declaration_specifier declaration_qualifier
 		{ Decls.add_dqual $1 $2 }
 
 
 declaration_qualifier_list:
 	| storage_class attribute*
-		{ attr $2 (mkdecl @@ TypedDecl ("", Sclass.add Sclass.empty $1, EmptyType, Decls.empty, Decls.empty, None)) }
+		{ attr $2 (mkdecl @@ TypedDecl ("", Sclass.add Sclass.empty $1, mkctyp @@ EmptyType, Decls.empty, Decls.empty, None)) }
 	| type_qualifier+ attribute* storage_class attribute*
-		{ attr ($2 @ $4) (mkdecl @@ TypedDecl ("", Sclass.add Sclass.empty $3, Types.add_tqual EmptyType $1, Decls.empty, Decls.empty, None)) }
+		{ attr ($2 @ $4) (mkdecl @@ TypedDecl ("", Sclass.add Sclass.empty $3, Types.add_tqual (mkctyp @@ EmptyType) $1, Decls.empty, Decls.empty, None)) }
 	| declaration_qualifier_list declaration_qualifier attribute*
 		{ attr $3 (Decls.add_dqual $1 $2) }
 
@@ -313,9 +315,9 @@ type_specifier_nosue:
 
 basic_type_specifier:
 	| basic_type_name
-		{ PartialBasicType [$1] }
+		{ mkctyp @@ PartialBasicType [$1] }
 	| type_qualifier+ basic_type_name
-		{ Types.add_tqual (PartialBasicType [$2]) $1 }
+		{ Types.add_tqual (mkctyp @@ PartialBasicType [$2]) $1 }
 	| basic_type_specifier type_qualifier
 		{ Types.add_tqual $1 [$2] }
 	| basic_type_specifier basic_type_name
@@ -333,9 +335,9 @@ sue_type_specifier:
 
 typedef_type_specifier:
 	| TK_TYPEDEF_NAME
-		{ TypedefType $1 }
+		{ mkctyp @@ TypedefType $1 }
 	| type_qualifier+ TK_TYPEDEF_NAME
-		{ Types.add_tqual (TypedefType $2) $1 }
+		{ Types.add_tqual (mkctyp @@ TypedefType $2) $1 }
 	| typedef_type_specifier type_qualifier
 		{ Types.add_tqual $1 [$2] }
 
@@ -351,9 +353,9 @@ typeof_type_specifier:
 
 typeof_type_name:
 	| KW_TYPEOF TK_LBRACK type_specifier TK_RBRACK
-		{ TypeofType $3 }
+		{ mkctyp @@ TypeofType $3 }
 	| KW_TYPEOF TK_LBRACK expression TK_RBRACK
-		{ TypeofExpr $3 }
+		{ mkctyp @@ TypeofExpr $3 }
 
 
 elaborated_type_name:
@@ -417,9 +419,9 @@ clean_typedef_declarator:
 	| clean_postfix_typedef_declarator
 		{ $1 }
 	| TK_STAR attribute* parameter_typedef_declarator
-		{ attr $2 (Decls.set_base_type $3 (PointerType (EmptyType))) }
+		{ attr $2 (Decls.set_base_type $3 (mkctyp @@ PointerType (mkctyp @@ EmptyType))) }
 	| TK_STAR attribute* pointer_type_qualifier+ parameter_typedef_declarator
-		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (PointerType (EmptyType)) $3)) }
+		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (mkctyp @@ PointerType (mkctyp @@ EmptyType)) $3)) }
 
 
 clean_postfix_typedef_declarator:
@@ -437,13 +439,13 @@ abstract_declarator:
 
 unary_abstract_declarator:
 	| TK_STAR attribute*
-		{ PointerType (EmptyType) }
+		{ mkctyp @@ PointerType (mkctyp @@ EmptyType) }
 	| TK_STAR attribute* pointer_type_qualifier+
-		{ Types.add_tqual (PointerType (EmptyType)) $3 }
+		{ Types.add_tqual (mkctyp @@ PointerType (mkctyp @@ EmptyType)) $3 }
 	| TK_STAR attribute* abstract_declarator
-		{ Types.set_base_type (PointerType (EmptyType)) $3 }
+		{ Types.set_base_type (mkctyp @@ PointerType (mkctyp @@ EmptyType)) $3 }
 	| TK_STAR attribute* pointer_type_qualifier+ abstract_declarator
-		{ Types.set_base_type (Types.add_tqual (PointerType (EmptyType)) $3) $4 }
+		{ Types.set_base_type (Types.add_tqual (mkctyp @@ PointerType (mkctyp @@ EmptyType)) $3) $4 }
 
 
 postfix_abstract_declarator:
@@ -461,7 +463,7 @@ postfixing_abstract_declarator:
 	| array_abstract_declarator+
 		{ Types.make_array_type $1 }
 	| TK_LBRACK forward_parameter_type_list? TK_RBRACK
-		{ let params, forwards = list_pair_from_opt $2 in FunctionType (EmptyType, params) }
+		{ let params, forwards = list_pair_from_opt $2 in mkctyp @@ FunctionType (mkctyp @@ EmptyType, params) }
 
 
 identifier_declarator:
@@ -473,9 +475,9 @@ unary_identifier_declarator:
 	| postfix_identifier_declarator
 		{ $1 }
 	| TK_STAR attribute* identifier_declarator
-		{ attr $2 (Decls.set_base_type $3 (PointerType (EmptyType))) }
+		{ attr $2 (Decls.set_base_type $3 (mkctyp @@ PointerType (mkctyp @@ EmptyType))) }
 	| TK_STAR attribute* pointer_type_qualifier+ identifier_declarator
-		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (PointerType (EmptyType)) $3)) }
+		{ attr $2 (Decls.set_base_type $4 (Types.add_tqual (mkctyp @@ PointerType (mkctyp @@ EmptyType)) $3)) }
 
 
 postfix_identifier_declarator:
@@ -516,7 +518,7 @@ type_name_noattr:
 	| type_qualifier+ default_int abstract_declarator
 		{ Types.set_base_type (Types.add_tqual $2 $1) $3 }
 	| WC_TYPE
-		{ WildcardType $1 }
+		{ mkctyp @@ WildcardType $1 }
 
 
 /*
@@ -581,7 +583,7 @@ parameter_type_list:
 	| sep_rev(TK_COMMA, parameter_declaration)
 		{ List.rev $1 }
 	| sep_rev(TK_COMMA, parameter_declaration) TK_COMMA TK_ELLIPSIS
-		{ List.rev (abstract_decl (PartialBasicType [BT_Ellipsis]) :: $1) }
+		{ List.rev (abstract_decl (mkctyp @@ PartialBasicType [BT_Ellipsis]) :: $1) }
 	/* Error productions */
 #if 0
 	| TK_ELLIPSIS
@@ -633,7 +635,7 @@ parameter_declaration_noattr:
 
 array_abstract_declarator:
 	| TK_LSQBRACK constant_expression? TK_RSQBRACK
-		{ ArrayType ($2, EmptyType) }
+		{ mkctyp @@ ArrayType ($2, mkctyp @@ EmptyType) }
 
 
 primary_expression:
@@ -1066,11 +1068,11 @@ jump_statement:
 
 struct_or_union_specifier:
 	| struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE attribute*
-		{ SUEType (List.flatten $2, $1, "", $4) }
+		{ mkctyp @@ SUEType (List.flatten $2, $1, "", $4) }
 	| struct_or_union attribute* identifier_or_typedef_name attribute*
-		{ SUEType (List.flatten $2, $1, $3, []) }
+		{ mkctyp @@ SUEType (List.flatten $2, $1, $3, []) }
 	| struct_or_union attribute* identifier_or_typedef_name attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE attribute*
-		{ SUEType (List.flatten $2, $1, $3, $6) }
+		{ mkctyp @@ SUEType (List.flatten $2, $1, $3, $6) }
 
 
 struct_or_union:
@@ -1131,7 +1133,7 @@ struct_declaring_list:
 	| struct_declaring_list TK_COMMA struct_declarator
 		{ (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $3) :: $1 }
 	| struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE
-		{ [attr $2 (Decls.set_tspec (mkdecl @@ StructDeclarator (Decls.empty, None)) (SUEType (List.flatten $2, $1, "", $4)))] }
+		{ [attr $2 (Decls.set_tspec (mkdecl @@ StructDeclarator (Decls.empty, None)) (mkctyp @@ SUEType (List.flatten $2, $1, "", $4)))] }
 
 
 struct_declarator:
@@ -1155,11 +1157,11 @@ bit_field_size:
 
 enum_specifier:
 	| KW_ENUM TK_LBRACE sep_rev(TK_COMMA, enumerator) TK_COMMA? TK_RBRACE
-		{ SUEType ([], SUE_Enum, "", List.rev $3) }
+		{ mkctyp @@ SUEType ([], SUE_Enum, "", List.rev $3) }
 	| KW_ENUM TK_IDENTIFIER TK_LBRACE sep_rev(TK_COMMA, enumerator) TK_COMMA? TK_RBRACE
-		{ SUEType ([], SUE_Enum, $2, List.rev $4) }
+		{ mkctyp @@ SUEType ([], SUE_Enum, $2, List.rev $4) }
 	| KW_ENUM TK_IDENTIFIER
-		{ SUEType ([], SUE_Enum, $2, []) }
+		{ mkctyp @@ SUEType ([], SUE_Enum, $2, []) }
 
 
 enumerator:
@@ -1176,7 +1178,7 @@ enumerator_value:
 
 datatype_specifier:
 	| KW_DATATYPE datatype_name TK_EQUALS datatype_declaring_list
-		{ SUEType ([], SUE_Enum, $2, []) }
+		{ mkctyp @@ SUEType ([], SUE_Enum, $2, []) }
 
 
 datatype_name:

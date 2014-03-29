@@ -33,9 +33,9 @@ let normalise_unit =
 
   and normalise_decl decl =
     match decl.d with
-    | IdentifierDeclarator (trs, "") ->
-        { decl with d = IdentifierDeclarator (trs, anon_id ()) }
-    | TypedDecl (scope, sc, (SUEType _ as ty),
+    | IdentifierDeclarator (attrs, "") ->
+        { decl with d = IdentifierDeclarator (attrs, anon_id ()) }
+    | TypedDecl (scope, sc, ({ t = SUEType _ } as ty),
                  { d = EmptyDecl }, asm, init)
       when Sclass.is_typedef sc ->
         normalise_decl {
@@ -58,12 +58,13 @@ let normalise_unit =
     | _ -> Visit.map_decl normalise_struct decl
 
 
-  and normalise_type = function
+  and normalise_type ty =
+    match ty.t with
     | PartialBasicType [BT_Default] ->
-        BasicType SInt
+        { ty with t = BasicType SInt }
 
     | PartialBasicType bts ->
-        BasicType (Basic_type.of_list bts)
+        { ty with t = BasicType (Basic_type.of_list bts) }
 
     (* XXX: not good
     | SUEType (attrs, kind, tag, [EmptyDecl]) ->
@@ -85,9 +86,12 @@ let normalise_unit =
     *)
 
     | SUEType (attrs, kind, "", members) ->
-        normalise_type (SUEType (attrs, kind, anon_sue (), members))
+        normalise_type {
+          ty with
+          t = SUEType (attrs, kind, anon_sue (), members)
+        }
 
-    | ty -> Visit.map_type normalise_struct ty
+    | _ -> Visit.map_type normalise_struct ty
 
   and normalise_stmt = function
     | stmt -> Visit.map_stmt normalise_struct stmt

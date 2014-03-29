@@ -22,14 +22,14 @@ let assign_names tu =
     let resume nm = Visit.map_decl (assign_names_struct nm) in
     match decl.d with
     (* XXX: SUE member scopes are here, because types currently have no traits *)
-    | TypedDecl (_, sc, (SUEType (_, _, nm, _) as ty), untyped, asm, init) ->
+    | TypedDecl (_, sc, ({ t = SUEType (_, _, nm, _) } as ty), untyped, asm, init) ->
         let scope = next_name nm in
         resume nm {
           decl with
           d = TypedDecl (scope, sc, ty, untyped, asm, init)
         }
     (* Function declarations also have their own scope *)
-    | TypedDecl (_, sc, (FunctionType _ as ty), untyped, asm, init) ->
+    | TypedDecl (_, sc, ({ t = FunctionType _ } as ty), untyped, asm, init) ->
         let scope = next_name nm in
         resume nm {
           decl with

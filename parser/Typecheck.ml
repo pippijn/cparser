@@ -34,9 +34,9 @@ let check_assignment op lhs rhs =
     match op with
     | OP_AddAssign
     | OP_SubtractAssign
-      when Type.is_pointer ltype
-        && Type.is_integral rtype ->
-          if not (Type.is_complete (Type.pointer_base ltype)) then
+      when Type.is_pointer ltype.t
+        && Type.is_integral rtype.t ->
+          if not (Type.is_complete (Type.pointer_base ltype).t) then
             die (Expression_error ("cannot perform pointer arithmetic on incomplete type", None, [lhs]));
           rhs
     | _ ->
@@ -69,7 +69,7 @@ let check_arithmetic op lhs rhs =
   (* Canonicalise pointer arithmetic expressions: handle int+ptr as ptr+int. *)
   let ltype, lhs, rtype, rhs =
     match op with
-    | OP_Add when Type.is_integral ltype && Type.is_pointer rtype ->
+    | OP_Add when Type.is_integral ltype.t && Type.is_pointer rtype.t ->
         rtype, rhs, ltype, lhs
     | _ ->
         ltype, lhs, rtype, rhs
@@ -83,23 +83,23 @@ let check_arithmetic op lhs rhs =
         (* Either both operands should have numeric types or one is pointer
          * and the other is integral. *)
         let ok =
-          Type.is_arithmetic ltype && Type.is_arithmetic rtype ||
-          Type.is_pointer ltype && Type.is_integral rtype
+          Type.is_arithmetic ltype.t && Type.is_arithmetic rtype.t ||
+          Type.is_pointer ltype.t && Type.is_integral rtype.t
         in
         if not ok then
           false, "operands must have arithmetic type or ptr/int"
         else
           let ok =
-            not (Type.is_pointer ltype) || Type.is_complete ltype
+            not (Type.is_pointer ltype.t) || Type.is_complete ltype.t
           in
           ok, "pointed-to type is incomplete"
 
     | OP_Subtract ->
         (* Allow num-num, ptr-int and ptr-ptr. *)
         let ok =
-          Type.is_arithmetic ltype && Type.is_arithmetic rtype ||
-          Type.is_pointer ltype && Type.is_integral rtype ||
-          Type.is_pointer ltype && Type.is_pointer rtype
+          Type.is_arithmetic ltype.t && Type.is_arithmetic rtype.t ||
+          Type.is_pointer ltype.t && Type.is_integral rtype.t ||
+          Type.is_pointer ltype.t && Type.is_pointer rtype.t
         in
         ok, "operands have incompatible types"
 
@@ -107,7 +107,7 @@ let check_arithmetic op lhs rhs =
     | OP_Divide
     | OP_Multiply ->
         let ok =
-          Type.is_arithmetic ltype && Type.is_arithmetic rtype
+          Type.is_arithmetic ltype.t && Type.is_arithmetic rtype.t
         in
         ok, "operands must have arithmetic type"
 
@@ -119,7 +119,7 @@ let check_arithmetic op lhs rhs =
     | OP_ShiftLeft
     | OP_ShiftRight ->
         let ok =
-          Type.is_integral ltype && Type.is_integral rtype
+          Type.is_integral ltype.t && Type.is_integral rtype.t
         in
         ok, "operands must have integral type"
 
@@ -141,7 +141,7 @@ let check_arithmetic op lhs rhs =
   let exprtype, exprval =
     match op with
     | OP_Add ->
-        if Type.is_pointer ltype then
+        if Type.is_pointer ltype.t then
           (* At this point, we don't know the value of pointer arithmetic. *)
           ltype, Constant.NonConst
         else
@@ -152,7 +152,7 @@ let check_arithmetic op lhs rhs =
           ltype, Const_eval.eval_arithmetic op lval rval
 
     | OP_Subtract ->
-        if Type.is_pointer rtype then
+        if Type.is_pointer rtype.t then
           (* At this point, we don't know the value of pointer arithmetic. *)
           Platform.ptrdiff_t, Constant.NonConst
         else
@@ -176,7 +176,9 @@ let check_arithmetic op lhs rhs =
     | OP_LogicalOr ->
         let lval = value_of lhs in
         let rval = value_of rhs in
-        PartialBasicType [BT_Bool], Const_eval.eval_arithmetic op lval rval
+        { t = PartialBasicType [BT_Bool];
+          t_sloc = Location.dummy;
+        }, Const_eval.eval_arithmetic op lval rval
 
     | _ -> die (Unimplemented "check_arithmetic")
   in
@@ -211,7 +213,7 @@ and tcheck_decl env decl =
   match decl.d with
   | TypedDecl (scope, sc, ty, untyped, asm, init) ->
       let opens_scope, tag, is_sue_definition =
-        match ty with
+        match ty.t with
         | SUEType (_, suekind, tag, members) ->
             let opens_scope =
               match suekind with
@@ -320,14 +322,14 @@ and tcheck_stmt env stmt =
 
       | ReturnStatement (None) ->
           let retty = Decls.return_type (Option.get env.func) in
-          if not (Type.is_void retty) then
+          if not (Type.is_void retty.t) then
             die (Statement_error ("non-void function should return a value",
                                   None, [stmt]));
           stmt
 
       | ReturnStatement (Some expr) ->
           let retty = Decls.return_type (Option.get env.func) in
-          if Type.is_void retty then
+          if Type.is_void retty.t then
             die (Expression_error ("void function should not return a value", None, [expr]));
           { stmt with
             s = ReturnStatement (Some (Conversions.return expr retty)) }
@@ -434,7 +436,8 @@ and tcheck_expr env untyped =
 (* {{{ tcheck_type *)
 
 and tcheck_type env untyped =
-  match Visit.map_type (tcheck_struct env) untyped with
+  let ty = Visit.map_type (tcheck_struct env) untyped in
+  match ty.t with
   | SUEType (attrs, SUE_Enum, tag, members) ->
       let _, members =
         List.fold_left (fun (value, members) enum ->
@@ -457,9 +460,11 @@ and tcheck_type env untyped =
           value, enum :: members
         ) (zero_mach_int, []) members
       in
-      SUEType (attrs, SUE_Enum, tag, List.rev members)
+      { ty with
+        t = SUEType (attrs, SUE_Enum, tag, List.rev members);
+      }
 
-  | n -> n
+  | _ -> ty
 
 (* }}} *)
 

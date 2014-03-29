@@ -96,7 +96,7 @@ let iter_expr { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
 
 let iter_type { iter_type; iter_expr; iter_stmt; iter_decl } node =
-  match node with
+  match node.t with
   | EmptyType -> ()
 
   (* Wildcards *)
@@ -116,7 +116,7 @@ let iter_type { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
 
 let iter_decl { iter_type; iter_expr; iter_stmt; iter_decl } node =
-  match node with
+  match node.d with
   | EmptyDecl -> ()
   | TranslationUnit (decls) -> iter iter_decl decls
 
@@ -238,23 +238,27 @@ let map_expr { map_type; map_expr; map_stmt; map_decl } node =
   }
 
 
-let map_type { map_type; map_expr; map_stmt; map_decl } = function
-  | EmptyType -> EmptyType
+let map_type { map_type; map_expr; map_stmt; map_decl } ty =
+  { ty with
+    t =
+      match ty.t with
+      | EmptyType -> EmptyType
 
-  (* Wildcards *)
-  | WildcardType _ as node -> node
+      (* Wildcards *)
+      | WildcardType _ as node -> node
 
-  (* Types *)
-  | PartialBasicType _ as node -> node
-  | BasicType _ as node -> node
-  | QualifiedType (tquals, unqual) -> QualifiedType (tquals, map_type unqual)
-  | PointerType (base) -> PointerType (map_type base)
-  | SUEType (attr, kind, tag, members) -> SUEType (attr, kind, tag, map map_decl members)
-  | TypedefType _ as node -> node
-  | ArrayType (arity, base) -> ArrayType (opt map_expr arity, map_type base)
-  | FunctionType (rettype, params) -> FunctionType (map_type rettype, map map_decl params)
-  | TypeofExpr (expr) -> TypeofExpr (map_expr expr)
-  | TypeofType (ty) -> TypeofType (map_type ty)
+      (* Types *)
+      | PartialBasicType _ as node -> node
+      | BasicType _ as node -> node
+      | QualifiedType (tquals, unqual) -> QualifiedType (tquals, map_type unqual)
+      | PointerType (base) -> PointerType (map_type base)
+      | SUEType (attr, kind, tag, members) -> SUEType (attr, kind, tag, map map_decl members)
+      | TypedefType _ as node -> node
+      | ArrayType (arity, base) -> ArrayType (opt map_expr arity, map_type base)
+      | FunctionType (rettype, params) -> FunctionType (map_type rettype, map map_decl params)
+      | TypeofExpr (expr) -> TypeofExpr (map_expr expr)
+      | TypeofType (ty) -> TypeofType (map_type ty)
+  }
 
 
 let map_decl { map_type; map_expr; map_stmt; map_decl } node =
@@ -403,7 +407,7 @@ let fold_expr { fold_type; fold_expr; fold_stmt; fold_decl } data node =
 
 
 let fold_type { fold_type; fold_expr; fold_stmt; fold_decl } data node =
-  match node with
+  match node.t with
   | EmptyType -> data
 
   (* Wildcards *)

@@ -82,14 +82,14 @@ let sue_match_init_list =
  * Decl is passed (from the root) to provide a location for error messages
  *)
 let check_init_list decl dtype init toplevel =
-  if Type.is_scalar dtype then
+  if Type.is_scalar dtype.t then
     match init.e with
     | TypedExpression (_, _, expr) ->
         ignore (Conversions.assignment init dtype)
     | _ -> die (Expression_error ("is_initialiser", None, [init]))
-  else if Type.is_array dtype then
+  else if Type.is_array dtype.t then
     die (Type_error ("unimplemented array", None, [dtype]))
-  else if Type.is_struct dtype then
+  else if Type.is_struct dtype.t then
     if not (is_initialiser init) then
       ignore (Conversions.assignment init dtype)
     else
@@ -98,7 +98,7 @@ let check_init_list decl dtype init toplevel =
         decl
         (ensure_initialiser_expr init decl)
         toplevel
-  else if Type.is_union dtype then
+  else if Type.is_union dtype.t then
     die (Type_error ("unimplemented union", None, [dtype]))
   else
     die (Type_error ("expression cannot have initialiser", None, [dtype]))
@@ -117,7 +117,7 @@ let check_decl_init decl dtype toplevel =
        * The type of the entity to be initialized shall be an array of unknown size or an object type
        * that is not a variable length array type.
        *)
-      if not (Type.is_object dtype || Type.is_unsized_array dtype) then
+      if not (Type.is_object dtype.t || Type.is_unsized_array dtype.t) then
         die (Declaration_error (
             "must be object type or an incomplete array",
             Some "6.7.8p3", [decl]));

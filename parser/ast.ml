@@ -291,7 +291,12 @@ and desg = {
 
 (** {6 Types} *)
 
-and ctyp =
+and ctyp = {
+  t : ctyp_;
+  t_sloc : Location.t;
+}
+
+and ctyp_ =
   | EmptyType
 
   (* Wildcards *)

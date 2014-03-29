@@ -41,7 +41,10 @@ let merge_string_literals literal info =
   StringLiteral (kind, strs)
 
 
-let default_int = PartialBasicType [BT_Default]
+let default_int = {
+  t = PartialBasicType [BT_Default];
+  t_sloc = Location.dummy;
+}
 
 let abstract_decl ty =
   { d = TypedDecl ("", Sclass.empty, ty, Decls.empty, Decls.empty, None);

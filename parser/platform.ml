@@ -149,9 +149,9 @@ let alignof_function_pointer = machine.alignof_function_pointer
 (*let size_t = machine.size_t*)
 (*let ptrdiff_t = machine.ptrdiff_t*)
 (*let wchar_t = machine.wchar_t*)
-let size_t			= BasicType ULong
-let ptrdiff_t			= BasicType SLong
-let wchar_t			= BasicType SInt
+let size_t			= { t = BasicType ULong; t_sloc = Location.dummy; }
+let ptrdiff_t			= { t = BasicType SLong; t_sloc = Location.dummy; }
+let wchar_t			= { t = BasicType SInt ; t_sloc = Location.dummy; }
 
 let preprocessor = machine.preprocessor
 let compiler = machine.compiler

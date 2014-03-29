@@ -95,7 +95,8 @@ let is_incomplete = function
 let is_complete ty = not (is_incomplete ty)
 
 
-let rec alignof = function
+let rec alignof ty =
+  match ty.t with
   | ArrayType (_, base) ->
       alignof base
 
@@ -145,17 +146,18 @@ let rec alignof = function
       | Void -> die (Type_error ("cannot compute alignment of `void' type", None, []))
       end
 
-  | PointerType (FunctionType _) -> Platform.alignof_function_pointer
+  | PointerType { t = FunctionType _ } -> Platform.alignof_function_pointer
   | PointerType _ -> Platform.alignof_object_pointer
 
-  | SUEType (_, _, _, _::_) as ty ->
-      let members = Sue.member_types ty in
+  | SUEType (_, _, _, _::_) ->
+      let members = Sue.member_types ty.t in
       ExList.max (List.map alignof members)
 
-  | ty -> die (Type_error ("cannot compute alignment of type", None, [ty]))
+  | _ -> die (Type_error ("cannot compute alignment of type", None, [ty]))
 
 
-let rec sizeof = function
+let rec sizeof ty =
+  match ty.t with
   | ArrayType (Some arity, base) ->
       Constant.to_int (value_of arity) * sizeof base
 
@@ -203,21 +205,21 @@ let rec sizeof = function
       | Void -> die (Type_error ("cannot compute size of `void' type", None, []))
       end
 
-  | PointerType (FunctionType _) -> Platform.sizeof_function_pointer
+  | PointerType { t = FunctionType _ } -> Platform.sizeof_function_pointer
   | PointerType _ -> Platform.sizeof_object_pointer
 
   | SUEType (_, _, _, [{ d = EmptyDecl }]) ->
       (* Empty structs are still 1 byte large. *)
       1
 
-  | SUEType (_, SUE_Union, _, _::_) as ty ->
-      Sue.member_types ty
+  | SUEType (_, SUE_Union, _, _::_) ->
+      Sue.member_types ty.t
       |> List.map sizeof
       |> ExList.max
 
   (* TODO: support packed structs. *)
-  | SUEType (_, SUE_Struct, _, _::_) as ty ->
-      let members = Sue.member_types ty in
+  | SUEType (_, SUE_Struct, _, _::_) ->
+      let members = Sue.member_types ty.t in
 
       let align size alignment =
         if size mod alignment <> 0 then
@@ -239,31 +241,36 @@ let rec sizeof = function
       let alignment = alignof ty in
       align size alignment
 
-  | ty -> die (Type_error ("cannot compute size of type", None, [ty]))
+  | _ -> die (Type_error ("cannot compute size of type", None, [ty]))
 
 
-let rec resolve = function
+let rec resolve ty =
+  match ty.t with
   | TypeofExpr (expr) -> resolve (type_of expr)
   | TypeofType (ty) -> resolve ty
-  | BasicType _ as ty -> ty
-  | ArrayType (arity, base) -> ArrayType (arity, resolve base)
-  | PointerType (base) -> PointerType (resolve base)
-  | QualifiedType (tqs, base) -> QualifiedType (tqs, resolve base)
+  | BasicType _ -> ty
+  | ArrayType (arity, base) ->
+      { ty with t = ArrayType (arity, resolve base) }
+  | PointerType (base) ->
+      { ty with t = PointerType (resolve base) }
+  | QualifiedType (tqs, base) ->
+      { ty with t = QualifiedType (tqs, resolve base) }
   | TypedefType (name) ->
       let typedef = Csymtab.lookup_decl name Symtab.Ordinary in
       resolve (Decls.decl_type typedef)
   | FunctionType (retty, params) ->
-      FunctionType (resolve retty, List.map resolve_decl params)
-  | SUEType (_, _, tag, []) as ty ->
+      { ty with
+        t = FunctionType (resolve retty, List.map resolve_decl params) }
+  | SUEType (_, _, tag, []) ->
       begin try
-        match Csymtab.lookup_decl tag Symtab.Tag with
-          | { d = TypedDecl (_, _, (SUEType _ as ty), _, _, _) } -> ty
-        | decl -> die (Declaration_error ("struct/union/enum tag resolved to non-sue type", None, [decl]))
-      with Not_found ->
-        ty
+          match Csymtab.lookup_decl tag Symtab.Tag with
+          | { d = TypedDecl (_, _, ({ t = SUEType _ } as ty), _, _, _) } -> ty
+          | decl -> die (Declaration_error ("struct/union/enum tag resolved to non-sue type", None, [decl]))
+        with Not_found ->
+          ty
       end
-  | SUEType (_, _, tag, _) as ty -> ty
-  | ty -> die (Type_error ("cannot resolve type", None, [ty]))
+  | SUEType (_, _, tag, _) -> ty
+  | _ -> die (Type_error ("cannot resolve type", None, [ty]))
 
 and resolve_decl decl =
   { decl with
@@ -275,7 +282,8 @@ and resolve_decl decl =
   }
 
 
-let rec is_lvalue_ty modifiablep = function
+let rec is_lvalue_ty modifiablep ty =
+  match ty.t with
   | QualifiedType (tq, _) when modifiablep && Tqual.is_const tq -> false
 
   | QualifiedType (_, base) -> is_lvalue_ty modifiablep base
@@ -289,9 +297,9 @@ let rec is_lvalue_ty modifiablep = function
 
   | TypeofExpr _
   | TypeofType _
-  | TypedefType _ as ty -> die (Type_error ("is_lvalue_ty expects resolved type", None, [ty]))
+  | TypedefType _ -> die (Type_error ("is_lvalue_ty expects resolved type", None, [ty]))
 
-  | ty -> die (Type_error ("unhandled type in is_lvalue_ty", None, [ty]))
+  | _ -> die (Type_error ("unhandled type in is_lvalue_ty", None, [ty]))
 
 
 let rec is_lvalue modifiablep expr =
@@ -366,16 +374,16 @@ let rec equal_qualified strict_toplevel strict_recursive ty1 ty2 =
       in
 
       tqs1 = tqs2 &&
-      equal base1 base2
+      equal base1.t base2.t
 
   | BasicType bt1, BasicType bt2 ->
       bt1 = bt2
 
   | PointerType base1, PointerType base2 ->
-      equal base1 base2
+      equal base1.t base2.t
 
   | ArrayType (arity1, base1), ArrayType (arity2, base2) ->
-      equal base1 base2 &&
+      equal base1.t base2.t &&
       begin match arity1, arity2 with
       | Some arity1, Some arity2 ->
           (* If both dims are specified they must be the same *)
@@ -389,7 +397,7 @@ let rec equal_qualified strict_toplevel strict_recursive ty1 ty2 =
       tag1 = tag2
 
   | FunctionType (retty1, params1), FunctionType (retty2, params2) ->
-      equal retty1 retty2 &&
+      equal retty1.t retty2.t &&
       begin match params1, params2 with
       (* if either list is "unspecified" assume comparison is successful *)
       | [], _
@@ -401,17 +409,17 @@ let rec equal_qualified strict_toplevel strict_recursive ty1 ty2 =
           List.for_all2 (fun p1 p2 ->
             let p1 = Decls.decl_type p1 in
             let p2 = Decls.decl_type p2 in
-            equal p1 p2
+            equal p1.t p2.t
           ) l1 l2
       end
 
   | ty, TypeofExpr expr
   | TypeofExpr expr, ty ->
-      equal (type_of expr) ty
+      equal (type_of expr).t ty
 
   | ty, TypeofType tty
   | TypeofType tty, ty ->
-      equal tty ty
+      equal tty.t ty
 
   | PartialBasicType _, PartialBasicType _ -> failwith "incomplete basic type"
   | TypedefType _, TypedefType _ -> failwith "unresolved typedef type cannot be compared"
@@ -424,56 +432,61 @@ let equal = equal_qualified false false
 
 
 (* sans_sign folds signed types into unsigned types of the same width. *)
-let sans_sign = function
-  | BasicType bt ->
-      let bt =
-        match bt with
-        | UChar
-        | SChar
-        | Char -> Char
+let sans_sign ty =
+  { ty with
+    t =
+      match ty.t with
+      | BasicType bt ->
+          BasicType (
+            match bt with
+            | UChar
+            | SChar
+            | Char -> Char
 
-        | UShort
-        | SShort -> UShort
+            | UShort
+            | SShort -> UShort
 
-        | UInt
-        | SInt -> UInt
+            | UInt
+            | SInt -> UInt
 
-        | ULong
-        | SLong -> ULong
+            | ULong
+            | SLong -> ULong
 
-        | ULongLong
-        | SLongLong -> ULongLong
+            | ULongLong
+            | SLongLong -> ULongLong
 
-        | UIntN bits
-        | SIntN bits -> UIntN bits
+            | UIntN bits
+            | SIntN bits -> UIntN bits
 
-        (* Keep the other types as-is. *)
-        | Bool
-        | Float
-        | Double
-        | LongDouble
+            (* Keep the other types as-is. *)
+            | Bool
+            | Float
+            | Double
+            | LongDouble
 
-        | FloatN _
-        | DecimalN _
+            | FloatN _
+            | DecimalN _
 
-        | WCharT
-        | VaList
-        | Ellipsis
-        | Void as bt ->
-            bt
-      in
-      BasicType bt
+            | WCharT
+            | VaList
+            | Ellipsis
+            | Void as bt ->
+                bt
+          )
 
-  | ty -> ty
+      | ty -> ty
+  }
 
 
-let pointer_base ty =
-  match ty with
-  |                    PointerType (base)
-  | QualifiedType (_, (PointerType (base))) ->
+let rec pointer_base ty =
+  match ty.t with
+  | PointerType (base) ->
       base
 
-  | ty -> die (Type_error ("unexpected type in pointer_base", None, [ty]))
+  | QualifiedType (_, ty) ->
+      pointer_base ty
+
+  | _ -> die (Type_error ("unexpected type in pointer_base", None, [ty]))
 
 
 let is_function = function

@@ -43,7 +43,7 @@ let op_assign = Operator.BinaryOperator OP_Assign
 
 
 let output_tq p = function
-  | QualifiedType (tqs, _) ->
+  | { t = QualifiedType (tqs, _) } ->
       output_type_qualifiers p tqs
   | _ -> ()
 
@@ -516,22 +516,22 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
    * then with context==Right to output type components appearing after.
    * sc is the storage class, which is emitted before all components in
    * the Left context. *)
-  and output_partial_type =
+  and output_partial_type context ty =
     let unqual = function
-      | QualifiedType (_, unqual) ->
+      | { t = QualifiedType (_, unqual) } ->
           unqual
       | ty -> ty
     in
 
     let is_array_or_func_type = function
-      | ArrayType _
-      | FunctionType _ -> true
+      | { t = ArrayType _
+            | FunctionType _ } -> true
       | _ -> false
     in
 
-    function
+    match context with
     | Left ->
-        begin function
+        begin match ty.t with
           | PartialBasicType bts ->
               output_basic_types p bts
           | BasicType bt ->
@@ -566,10 +566,11 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
 
           | EmptyType -> ()
 
-          | WildcardType _ as n -> die (Type_error ("output_partial_type Left", None, [n]))
+          | WildcardType _ -> die (Type_error ("output_partial_type Left",
+                                               None, [ty]))
         end
     | Right ->
-        begin function
+        begin match ty.t with
           | PartialBasicType _
           | BasicType _
           | TypedefType _
@@ -595,7 +596,8 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
 
           | EmptyType -> ()
 
-          | WildcardType _ as n -> die (Type_error ("output_partial_type Right", None, [n]))
+          | WildcardType _ -> die (Type_error ("output_partial_type Right",
+                                               None, [ty]))
         end
 
 

@@ -2,7 +2,10 @@ open Ast
 
 
 let int_type = function
-  | None -> BasicType SInt
+  | None ->
+      { t = BasicType SInt;
+        t_sloc = Location.dummy;
+      }
   | Some suffix ->
       let rec kinds bts = function
         | 0 -> bts
@@ -14,11 +17,16 @@ let int_type = function
             | 'i' | 'I' -> die (Unimplemented "imaginary integer constants")
             | c ->  die (Unimplemented ("integer suffix '" ^ Char.escaped c ^ "'"))
       in
-      BasicType (Basic_type.of_list (kinds [BT_Int] (String.length suffix)))
+      { t = BasicType (Basic_type.of_list (kinds [BT_Int] (String.length suffix)));
+        t_sloc = Location.dummy;
+      }
 
 
 let float_type = function
-  | None -> BasicType Double
+  | None ->
+      { t = BasicType Double;
+        t_sloc = Location.dummy;
+      }
   | Some suffix ->
       let rec kinds bts = function
         | 0 -> bts
@@ -41,7 +49,9 @@ let float_type = function
         | bts -> BT_Double :: bts
       in
 
-      BasicType (Basic_type.of_list bts)
+      { t = BasicType (Basic_type.of_list bts);
+        t_sloc = Location.dummy;
+      }
 
 
 let string_type length kind chars =
@@ -54,14 +64,19 @@ let string_type length kind chars =
   (* '\0'-terminator *)
   let length = length + 1 in
 
-  ArrayType (
-    Some {
-      e = TypedExpression (
-          Platform.size_t,
-          Constant.IntValue (Mach_int.mach_int_of_int length),
-          { e = IntegerLiteral (LIT_Dec, string_of_int length, None);
-            e_sloc = Location.dummy;
-          });
-      e_sloc = Location.dummy;
-    },
-    BasicType bt)
+  { t = ArrayType (
+       Some {
+         e = TypedExpression (
+             Platform.size_t,
+             Constant.IntValue (Mach_int.mach_int_of_int length),
+             { e = IntegerLiteral (LIT_Dec, string_of_int length, None);
+               e_sloc = Location.dummy;
+             });
+         e_sloc = Location.dummy;
+       },
+       { t = BasicType bt;
+         t_sloc = Location.dummy;
+       }
+     );
+    t_sloc = Location.dummy;
+  }

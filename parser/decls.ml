@@ -55,12 +55,14 @@ let rec add_pointer_type decl =
       | IdentifierDeclarator _ ->
           TypedDecl ("",
                      Sclass.empty,
-                     PointerType (EmptyType),
+                     Types.empty_ptr,
                      decl,
                      empty,
                      None)
       | TypedDecl (scope, sclasses, ty, decl, asm, init) ->
-          TypedDecl (scope, sclasses, PointerType (ty), decl, asm, init)
+          TypedDecl (scope, sclasses,
+                     { ty with t = PointerType ty },
+                     decl, asm, init)
       | _ -> die (Declaration_error ("add_pointer_type", None, [decl]))
   }
 
@@ -115,7 +117,7 @@ let add_parameter_types fdecl decls =
       d =
         match decl.d with
         | TypedDecl (scope, sclasses,
-                     (PartialBasicType [BT_Default] as default_int),
+                     ({ t = PartialBasicType [BT_Default] } as default_int),
                      decl, asm, init) ->
             let ty = try
                 Hashtbl.find types (decl_name decl)
@@ -132,10 +134,11 @@ let add_parameter_types fdecl decls =
     d =
       match fdecl.d with
       | TypedDecl (scope, sclasses,
-                   FunctionType (retty, params),
+                   ({ t = FunctionType (retty, params) } as fty ),
                    decl, asm, init) ->
           TypedDecl (scope, sclasses,
-                     FunctionType (retty, List.map add params),
+                     { fty with
+                       t = FunctionType (retty, List.map add params) },
                      decl, asm, init)
       | _ -> die (Declaration_error ("add_parameter_types", None, [fdecl]))
   }
@@ -232,12 +235,12 @@ let finish_decl decl asm init =
 
 
 let return_type = function
-  | { d = TypedDecl (_, _, FunctionType (retty, _), _, _, _) } -> retty
+  | { d = TypedDecl (_, _, { t = FunctionType (retty, _) }, _, _, _) } -> retty
   | decl -> die (Declaration_error ("declaration is not a function", None, [decl]))
 
 
 let enter_function = function
-  | { d = TypedDecl (_, _, FunctionType (_, args), _, _, _) } ->
+  | { d = TypedDecl (_, _, { t = FunctionType (_, args) }, _, _, _) } ->
       Lexer_hack.push_scope ();
       (* Register all argument names as identifiers in the function's scope. *)
       List.iter (function

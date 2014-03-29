@@ -51,7 +51,12 @@ let of_list bts =
   | [BT_Double]					-> Double
   | [BT_Long; BT_Double]			-> LongDouble
 
-  | bts -> die (Type_error ("invalid basic type", Some "6.7.2p2", [PartialBasicType bts]))
+  | bts -> die (Type_error (
+      "invalid basic type", Some "6.7.2p2",
+      [{ t = PartialBasicType bts;
+         t_sloc = Location.dummy;
+       }]
+    ))
 
 
 let to_list = function

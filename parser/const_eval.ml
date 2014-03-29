@@ -89,7 +89,9 @@ let eval_arithmetic op lhs rhs =
 
 let make_int value =
   { e = TypedExpression (
-       BasicType SInt,
+       { t = BasicType SInt;
+         t_sloc = Location.dummy;
+       },
        IntValue value,
        { e = IntegerLiteral (LIT_Dec, string_of_mach_int value, None);
          e_sloc = Location.dummy;

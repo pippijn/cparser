@@ -40,20 +40,23 @@ let unary expr =
       match expr.e with
       | TypedExpression (ty, value, expr) ->
           let ty =
-            match ty with
-            (* Convert char and short to int, keeping their signedness. *)
-            | BasicType (SChar | SShort) -> BasicType SInt
-            | BasicType (UChar | UShort) -> BasicType UInt
-            | BasicType Char ->
-                if Platform.char_is_signed then
-                  BasicType SInt
-                else
-                  BasicType UInt
-            (* Convert arrays to pointers. *)
-            | ArrayType (_, base) -> PointerType (base)
-            (* Convert functions to pointers to functions. *)
-            | FunctionType _ as ty -> PointerType (ty)
-            | ty -> ty
+            { ty with
+              t =
+                match ty.t with
+                (* Convert char and short to int, keeping their signedness. *)
+                | BasicType (SChar | SShort) -> BasicType SInt
+                | BasicType (UChar | UShort) -> BasicType UInt
+                | BasicType Char ->
+                    if Platform.char_is_signed then
+                      BasicType SInt
+                    else
+                      BasicType UInt
+                (* Convert arrays to pointers. *)
+                | ArrayType (_, base) -> PointerType (base)
+                (* Convert functions to pointers to functions. *)
+                | FunctionType _ -> PointerType (ty)
+                | _ -> ty.t
+            }
           in
 
           TypedExpression (ty, value, expr)
@@ -75,7 +78,11 @@ let binary a b =
         | Float		-> 7
         | Double	-> 8
         | LongDouble	-> 9
-        | bt		-> die (Type_error ("invalid basic type", None, [BasicType bt]))
+        | bt ->
+            die (Type_error ("invalid basic type", None,
+                             [{ t = BasicType bt;
+                                t_sloc = Location.dummy;
+                              }]))
       in
 
       let convert to_ty expr =
@@ -84,7 +91,7 @@ let binary a b =
             (* Convert value to floating point, if the target type is a
              * floating point type. *)
             let value =
-              if Type.is_floating to_ty && not (Type.is_floating from_ty) then
+              if Type.is_floating to_ty.t && not (Type.is_floating from_ty.t) then
                 let open Constant in
                 match evalue with
                 | IntValue i ->
@@ -99,18 +106,18 @@ let binary a b =
             die (Expression_error ("untyped expression in implicit conversion", None, [expr]))
       in
 
-      begin match lty, rty with
+      begin match lty.t, rty.t with
       (* If the types are already equal, no conversion is required. *)
       | lty, rty when Type.equal lty rty -> a, b
 
       (* For basic types, convert the smaller type to the bigger type. *)
       | BasicType lbt, BasicType rbt ->
-          begin match rank lbt < rank rbt with
-          | true  -> (* Convert left expression to right type. *)
-              { a with e = convert rty a }, b
-          | false -> (* Convert right expression to left type. *)
-              a, { b with e = convert lty b }
-          end
+          if rank lbt < rank rbt then
+            (* Convert left expression to right type. *)
+            { a with e = convert rty a }, b
+          else
+            (* Convert right expression to left type. *)
+            a, { b with e = convert lty b }
 
       (* Complex types undergo no conversions. *)
       | _ ->
@@ -140,14 +147,14 @@ let binary a b =
  *)
 let rec coerce ptr2intp ptr2ptrp rhs ltype =
   let type_error_if msg f l r =
-    if f l r then
+    if f l.t r.t then
       die (Type_error (msg, None, [l; r]))
     else
       false
   in
 
   let expr_error_if msg f l r =
-    if f l r then
+    if f l.t r then
       die (Expression_error (msg, None, [r]))
     else
       false
@@ -156,11 +163,11 @@ let rec coerce ptr2intp ptr2ptrp rhs ltype =
   let rtype = Type.type_of rhs in
 
 
-  if Type.is_arithmetic rtype && Type.is_arithmetic ltype then
+  if Type.is_arithmetic rtype.t && Type.is_arithmetic ltype.t then
     rhs
 
 
-  else if Type.is_pointer rtype && Type.is_pointer ltype then
+  else if Type.is_pointer rtype.t && Type.is_pointer ltype.t then
     if ptr2ptrp then
       rhs
     else
@@ -169,9 +176,9 @@ let rec coerce ptr2intp ptr2ptrp rhs ltype =
 
       let assignable =
         (* Valid conversions. *)
-        Type.equal lbasetype rbasetype ||
-        Type.is_void lbasetype && Type.is_void rbasetype ||
-        type_assignable_modulo_cv lbasetype rbasetype ||
+        Type.equal lbasetype.t rbasetype.t ||
+        Type.is_void lbasetype.t && Type.is_void rbasetype.t ||
+        type_assignable_modulo_cv lbasetype.t rbasetype.t ||
 
         (* Invalid conversions. *)
         type_error_if "discarding type qualifiers in pointer assignment"
@@ -188,23 +195,23 @@ let rec coerce ptr2intp ptr2ptrp rhs ltype =
         failwith "no way to assignment-coerce types"
 
 
-  else if Type.is_integral rtype && Type.is_pointer ltype then
+  else if Type.is_integral rtype.t && Type.is_pointer ltype.t then
     if ptr2intp || Const_eval.is_zero rhs then
       rhs
     else
       die (Expression_error ("assignment of integer value to pointer", None, [rhs]))
 
 
-  else if Type.is_pointer ltype && Type.is_integral rtype then
+  else if Type.is_pointer ltype.t && Type.is_integral rtype.t then
     if ptr2intp then
       rhs
     else
       die (Expression_error ("assignment of pointer value to integer", None, [rhs]))
 
 
-  else if Type.is_aggregate ltype then
+  else if Type.is_aggregate ltype.t then
     if
-      Type.equal rtype ltype ||
+      Type.equal rtype.t ltype.t ||
       expr_error_if "coercing to union member"
         (fun l r -> Type.is_union l && is_coercible_to_member_type_of_union l r) ltype rhs
     then
@@ -221,7 +228,8 @@ let rec coerce ptr2intp ptr2ptrp rhs ltype =
 and is_coercible_to_member_type_of_union union rhs =
   List.exists (fun memty ->
     try
-      ignore (coerce true true rhs memty); true
+      ignore (coerce true true rhs memty);
+      true
     with Not_found ->
       false
   ) (Sue.member_types union)
