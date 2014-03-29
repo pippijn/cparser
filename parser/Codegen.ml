@@ -104,8 +104,8 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         output_decl_list decls; p ";"
     | TypedDecl _ ->
         output_decl_list [node]
-    | IdentifierDeclarator (trs, id) ->
-        opt output_attrs (Attributes.attribute_opt trs);
+    | IdentifierDeclarator (attrs, id) ->
+        output_attrs attrs;
         if not (is_anon id) then
           p id
     | FunctionDefinition (decl, body) ->
@@ -538,12 +538,12 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
               output_basic_types p (Basic_type.to_list bt)
           | TypedefType id ->
               p id
-          | SUEType (trs, kind, tag, members) ->
+          | SUEType (attrs, kind, tag, members) ->
               p (Printing.string_of_sue_kind kind);
-              opt output_attrs (Attributes.attribute_opt trs);
+              output_attrs attrs;
               if not (is_anon tag) then
                 p tag;
-              output_sue (Attributes.position trs) kind members
+              output_sue Location.dummy kind members
           | QualifiedType (tqs, base) ->
               output_partial_type Left base; output_type_qualifiers p tqs
 

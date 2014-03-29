@@ -193,12 +193,7 @@ and pseudo_operator =
   | OP_Alignof			(** "[__alignof (a)]" *)
   deriving (Show)
 
-type attribute = expr Attributes.attribute
-
-and annotations = expr Attributes.attributes_position_scope list
-and position = Attributes.position list
-and scope_and_position = Attributes.position_scope list
-
+type attribute = (string * expr list) list
 
 (** {6 Statements} *)
 
@@ -300,14 +295,14 @@ and ctyp =
   | EmptyType
 
   (* Wildcards *)
-  | WildcardType of position * string
+  | WildcardType of string
 
   (* Types *)
   | PartialBasicType of partial_basic_type list
   | BasicType of basic_type
   | QualifiedType of Tqual.type_qualifiers * (*unqual*)ctyp
   | PointerType of (*base*)ctyp
-  | SUEType of annotations * sue_kind * (*tag*)string * (*members*)decl list
+  | SUEType of attribute * sue_kind * (*tag*)string * (*members*)decl list
   | TypedefType of (*name*)string
   | ArrayType of (*arity*)expr option * (*base*)ctyp
   | FunctionType of (*rettype*)ctyp * (*params*)decl list
@@ -342,7 +337,7 @@ and decl_ =
   (* Declarations *)
   | AsmSpecifier of (*register*)string list
   | FunctionDefinition of (*decl*)decl * (*body*)stmt
-  | IdentifierDeclarator of annotations * (*id*)string
+  | IdentifierDeclarator of attribute * (*id*)string
   | StructDeclarator of (*decl*)decl * (*bitfield*)expr option
   | TypedDecl of (*scope*)string * Sclass.storage_classes * (*type*)ctyp * (*untyped*)decl * (*asm*)decl * (*init*)expr option
   | DeclaringList of (*decls*)decl list

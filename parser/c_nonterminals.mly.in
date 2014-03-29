@@ -13,7 +13,6 @@ let expr  e_sloc  e = {  e;  e_sloc }
 #define mkdecl	decl ($startpos, $endpos)
 #define mkstmt	stmt ($startpos, $endpos)
 #define mkexpr	expr ($startpos, $endpos)
-#define LOC	[`Position ($startpos, $endpos)]
 %}
 
 %nonassoc KW_IF
@@ -246,7 +245,7 @@ declaration_specifier_nosue:
 	| basic_declaration_specifier	{ $1 }
 	| typedef_declaration_specifier	{ $1 }
 	| typeof_declaration_specifier	{ $1 }
-	| WC_TYPE			{ mkdecl @@ TypedDecl ("", Sclass.empty, WildcardType (LOC, $1), Decls.empty, Decls.empty, None) }
+	| WC_TYPE			{ mkdecl @@ TypedDecl ("", Sclass.empty, WildcardType $1, Decls.empty, Decls.empty, None) }
 
 
 basic_declaration_specifier:
@@ -517,7 +516,7 @@ type_name_noattr:
 	| type_qualifier+ default_int abstract_declarator
 		{ Types.set_base_type (Types.add_tqual $2 $1) $3 }
 	| WC_TYPE
-		{ WildcardType (LOC, $1) }
+		{ WildcardType $1 }
 
 
 /*
@@ -1067,11 +1066,11 @@ jump_statement:
 
 struct_or_union_specifier:
 	| struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE attribute*
-		{ SUEType (sue_attr $2 LOC, $1, "", $4) }
+		{ SUEType (List.flatten $2, $1, "", $4) }
 	| struct_or_union attribute* identifier_or_typedef_name attribute*
-		{ SUEType (sue_attr $2 LOC, $1, $3, []) }
+		{ SUEType (List.flatten $2, $1, $3, []) }
 	| struct_or_union attribute* identifier_or_typedef_name attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE attribute*
-		{ SUEType (sue_attr $2 LOC, $1, $3, $6) }
+		{ SUEType (List.flatten $2, $1, $3, $6) }
 
 
 struct_or_union:
@@ -1132,7 +1131,7 @@ struct_declaring_list:
 	| struct_declaring_list TK_COMMA struct_declarator
 		{ (Decls.merge_decls (Decls.decl_base_type (List.hd $1)) $3) :: $1 }
 	| struct_or_union attribute* TK_LBRACE struct_declaration_list_opt TK_RBRACE
-		{ [attr $2 (Decls.set_tspec (mkdecl @@ StructDeclarator (Decls.empty, None)) (SUEType (sue_attr $2 LOC, $1, "", $4)))] }
+		{ [attr $2 (Decls.set_tspec (mkdecl @@ StructDeclarator (Decls.empty, None)) (SUEType (List.flatten $2, $1, "", $4)))] }
 
 
 struct_declarator:
@@ -1156,11 +1155,11 @@ bit_field_size:
 
 enum_specifier:
 	| KW_ENUM TK_LBRACE sep_rev(TK_COMMA, enumerator) TK_COMMA? TK_RBRACE
-		{ SUEType (LOC, SUE_Enum, "", List.rev $3) }
+		{ SUEType ([], SUE_Enum, "", List.rev $3) }
 	| KW_ENUM TK_IDENTIFIER TK_LBRACE sep_rev(TK_COMMA, enumerator) TK_COMMA? TK_RBRACE
-		{ SUEType (LOC, SUE_Enum, $2, List.rev $4) }
+		{ SUEType ([], SUE_Enum, $2, List.rev $4) }
 	| KW_ENUM TK_IDENTIFIER
-		{ SUEType (LOC, SUE_Enum, $2, []) }
+		{ SUEType ([], SUE_Enum, $2, []) }
 
 
 enumerator:
@@ -1177,7 +1176,7 @@ enumerator_value:
 
 datatype_specifier:
 	| KW_DATATYPE datatype_name TK_EQUALS datatype_declaring_list
-		{ SUEType (LOC, SUE_Enum, $2, []) }
+		{ SUEType ([], SUE_Enum, $2, []) }
 
 
 datatype_name:

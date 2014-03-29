@@ -1,6 +1,3 @@
-open Attributes
-
-
 let print_decl decl = print_endline (Ast.Show_decl.show decl)
 let print_expr expr = print_endline (Ast.Show_expr.show expr)
 let print_stmt stmt = print_endline (Ast.Show_stmt.show stmt)

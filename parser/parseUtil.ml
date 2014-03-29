@@ -49,7 +49,4 @@ let abstract_decl ty =
 
 let attr = Traits.add_attrs
 
-let sue_attr attrs loc =
-  Attributes.add_attribute (List.flatten attrs) loc
-
 let identity a = a

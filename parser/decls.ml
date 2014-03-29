@@ -176,8 +176,8 @@ let rec set_tspec decl spec =
 let rec merge_decls spec decl =
   match spec.d with
   | TypedDecl (scope, sclasses, specty,
-               { d = IdentifierDeclarator (idtrs, "") }, asm, init) ->
-      Traits.add_attrs [Attributes.attribute idtrs] (
+               { d = IdentifierDeclarator (attrs, "") }, asm, init) ->
+      Traits.add_attrs [attrs] (
         merge_decls
           { spec with
             d = TypedDecl (scope, sclasses, specty, empty, asm, init) }

@@ -5,7 +5,6 @@ Version		= 0.1
 OCaml-Sources[] =
   Assign_names
   Ast
-  Attributes
   Basic_type
   C_lexer
   C_parser
