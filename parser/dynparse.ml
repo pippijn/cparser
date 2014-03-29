@@ -112,14 +112,14 @@ let parse wcols code sexp output error missing =
         | Expression_error (e, section, exprs) ->
             error (format_error (fun expr -> expr.e_sloc) code_of_expr e exprs)
         | Declaration_error (e, section, decls) ->
-            error (format_error pos_of_decl code_of_decl e decls)
+            error (format_error (fun decl -> decl.d_sloc) code_of_decl e decls)
         | Type_error (e, section, types) ->
             error (format_error pos_of_type code_of_type e types)
         | Statement_error (e, section, stmts) ->
             error (format_error (fun stmt -> stmt.s_sloc) code_of_stmt e stmts)
 
         | Parse_error (e, decl) ->
-            error (format_error pos_of_decl code_of_decl e [decl])
+            error (format_error (fun decl -> decl.d_sloc) code_of_decl e [decl])
 
         | Unimplemented (e) ->
             error (e)

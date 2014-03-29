@@ -206,7 +206,7 @@ let rec sizeof = function
   | PointerType (FunctionType _) -> Platform.sizeof_function_pointer
   | PointerType _ -> Platform.sizeof_object_pointer
 
-  | SUEType (_, _, _, [EmptyDecl]) ->
+  | SUEType (_, _, _, [{ d = EmptyDecl }]) ->
       (* Empty structs are still 1 byte large. *)
       1
 
@@ -257,7 +257,7 @@ let rec resolve = function
   | SUEType (_, _, tag, []) as ty ->
       begin try
         match Csymtab.lookup_decl tag Symtab.Tag with
-        | TypedDecl (_, _, (SUEType _ as ty), _, _, _) -> ty
+          | { d = TypedDecl (_, _, (SUEType _ as ty), _, _, _) } -> ty
         | decl -> die (Declaration_error ("struct/union/enum tag resolved to non-sue type", None, [decl]))
       with Not_found ->
         ty
@@ -265,10 +265,14 @@ let rec resolve = function
   | SUEType (_, _, tag, _) as ty -> ty
   | ty -> die (Type_error ("cannot resolve type", None, [ty]))
 
-and resolve_decl = function
-  | TypedDecl (trs, sc, ty, untyped, asm, init) ->
-      TypedDecl (trs, sc, resolve ty, untyped, asm, init)
-  | decl -> die (Declaration_error ("cannot resolve declaration type", None, [decl]))
+and resolve_decl decl =
+  { decl with
+    d =
+      match decl.d with
+      | TypedDecl (trs, sc, ty, untyped, asm, init) ->
+          TypedDecl (trs, sc, resolve ty, untyped, asm, init)
+      | _ -> die (Declaration_error ("cannot resolve declaration type", None, [decl]))
+  }
 
 
 let rec is_lvalue_ty modifiablep = function

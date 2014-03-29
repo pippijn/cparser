@@ -48,7 +48,7 @@ let iter_stmt { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
   (* GCC asm statement *)
   | AsmStatement (volatile, code, in_args, out_args, clobber, labels) ->
-      let iter_arg (AsmArgument (_, constr, expr)) = iter_expr expr in
+      let iter_arg (AsmArgument (constr, expr)) = iter_expr expr in
       iter iter_arg in_args;
       iter iter_arg out_args
 
@@ -127,21 +127,21 @@ let iter_decl { iter_type; iter_expr; iter_stmt; iter_decl } node =
   | PreprocessorDirective _ -> ()
 
   (* Syntax errors *)
-  | SyntaxError (_, msg, node) -> iter_decl node
+  | SyntaxError (msg, node) -> iter_decl node
 
   (* Toplevel __asm__ *)
   | ToplevelAsm _ -> ()
 
   (* Generic nodes *)
   | AsmSpecifier _ -> ()
-  | FunctionDefinition (_, decl, body) -> iter_decl decl; iter_stmt body
+  | FunctionDefinition (decl, body) -> iter_decl decl; iter_stmt body
   | IdentifierDeclarator _ -> ()
-  | StructDeclarator (_, decl, bitfield) -> iter_decl decl; opt iter_expr bitfield
+  | StructDeclarator (decl, bitfield) -> iter_decl decl; opt iter_expr bitfield
   | TypedDecl (_, sclasses, ty, untyped, asm, init) -> iter_type ty; iter_decl untyped; iter_decl asm; opt iter_expr init
-  | DeclaringList (_, decls) -> iter iter_decl decls
+  | DeclaringList (decls) -> iter iter_decl decls
 
   (* Struct/union/enum types *)
-  | Enumerator (_, id, value) -> opt iter_expr value
+  | Enumerator (id, value) -> opt iter_expr value
 
 
 (* }}} *)
@@ -194,7 +194,7 @@ let map_stmt { map_type; map_expr; map_stmt; map_decl } node =
 
                                          (* GCC asm statement *)
       | AsmStatement (volatile, code, in_args, out_args, clobber, labels) ->
-          let map_arg (AsmArgument (trs, constr, expr)) = AsmArgument (trs, constr, map_expr expr) in
+          let map_arg (AsmArgument (constr, expr)) = AsmArgument (constr, map_expr expr) in
           AsmStatement (volatile, code, map map_arg in_args, map map_arg out_args, clobber, labels)
   }
 
@@ -258,32 +258,35 @@ let map_type { map_type; map_expr; map_stmt; map_decl } = function
 
 
 let map_decl { map_type; map_expr; map_stmt; map_decl } node =
-  match node with
-  | EmptyDecl -> node
-  | TranslationUnit (decls) -> TranslationUnit (map map_decl decls)
+  { node with
+    d =
+      match node.d with
+      | EmptyDecl -> node.d
+      | TranslationUnit (decls) -> TranslationUnit (map map_decl decls)
 
-  (* Wildcards *)
-  | WildcardDecl _ -> node
+      (* Wildcards *)
+      | WildcardDecl _ -> node.d
 
-  (* #include etc. *)
-  | PreprocessorDirective _ -> node
+      (* #include etc. *)
+      | PreprocessorDirective _ -> node.d
 
-  (* Syntax errors *)
-  | SyntaxError (trs, msg, node) -> SyntaxError (trs, msg, map_decl node)
+      (* Syntax errors *)
+      | SyntaxError (msg, node) -> SyntaxError (msg, map_decl node)
 
-  (* Statements *)
-  | ToplevelAsm _ -> node
+      (* Statements *)
+      | ToplevelAsm _ -> node.d
 
-  (* Generic nodes *)
-  | AsmSpecifier _ -> node
-  | FunctionDefinition (trs, decl, body) -> FunctionDefinition (trs, map_decl decl, map_stmt body)
-  | IdentifierDeclarator _ -> node
-  | StructDeclarator (trs, decl, bitfield) -> StructDeclarator (trs, map_decl decl, opt map_expr bitfield)
-  | TypedDecl (trs, sclasses, ty, untyped, asm, init) -> TypedDecl (trs, sclasses, map_type ty, map_decl untyped, map_decl asm, opt map_expr init)
-  | DeclaringList (trs, decls) -> DeclaringList (trs, map map_decl decls)
+      (* Generic nodes *)
+      | AsmSpecifier _ -> node.d
+      | FunctionDefinition (decl, body) -> FunctionDefinition (map_decl decl, map_stmt body)
+      | IdentifierDeclarator _ -> node.d
+      | StructDeclarator (decl, bitfield) -> StructDeclarator (map_decl decl, opt map_expr bitfield)
+      | TypedDecl (scope, sclasses, ty, untyped, asm, init) -> TypedDecl (scope, sclasses, map_type ty, map_decl untyped, map_decl asm, opt map_expr init)
+      | DeclaringList (decls) -> DeclaringList (map map_decl decls)
 
-  (* Struct/union/enum types *)
-  | Enumerator (trs, id, value) -> Enumerator (trs, id, opt map_expr value)
+      (* Struct/union/enum types *)
+      | Enumerator (id, value) -> Enumerator (id, opt map_expr value)
+  }
 
 
 (* }}} *)
@@ -341,13 +344,13 @@ let fold_stmt { fold_type; fold_expr; fold_stmt; fold_decl } data node =
 
   (* GCC asm statement *)
   | AsmStatement (volatile, code, in_args, out_args, clobber, labels) ->
-      let fold_arg data (AsmArgument (_, constr, expr)) = fold_expr data expr in
+      let fold_arg data (AsmArgument (constr, expr)) = fold_expr data expr in
       let fold = fold_left fold_arg in
       data |> (fold, in_args) |> (fold, out_args)
 
 
 let fold_expr { fold_type; fold_expr; fold_stmt; fold_decl } data node =
-  match node with
+  match node.e with
   (* Wildcards *)
   | WildcardExpr _ -> data
 
@@ -422,7 +425,7 @@ let fold_type { fold_type; fold_expr; fold_stmt; fold_decl } data node =
 
 
 let fold_decl { fold_type; fold_expr; fold_stmt; fold_decl } data node =
-  match node with
+  match node.d with
   | EmptyDecl -> data
   | TranslationUnit (decls) -> fold_left fold_decl data decls
 
@@ -433,24 +436,24 @@ let fold_decl { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   | PreprocessorDirective _ -> data
 
   (* Syntax errors *)
-  | SyntaxError (_, msg, node) -> fold_decl data node
+  | SyntaxError (msg, node) -> fold_decl data node
 
   (* Toplevel __asm__ *)
   | ToplevelAsm _ -> data
 
   (* Generic nodes *)
   | AsmSpecifier _ -> data
-  | FunctionDefinition (_, decl, body) ->
+  | FunctionDefinition (decl, body) ->
       data |> (fold_decl, decl) |> (fold_stmt, body)
   | IdentifierDeclarator _ -> data
-  | StructDeclarator (_, decl, bitfield) ->
+  | StructDeclarator (decl, bitfield) ->
       data |> (fold_decl, decl) |> (opt fold_expr, bitfield)
   | TypedDecl (_, sclasses, ty, untyped, asm, init) ->
       data |> (fold_type, ty) |> (fold_decl, untyped) |> (fold_decl, asm) |> (opt fold_expr, init)
-  | DeclaringList (_, decls) -> fold_left fold_decl data decls
+  | DeclaringList (decls) -> fold_left fold_decl data decls
 
   (* Struct/union/enum types *)
-  | Enumerator (_, id, value) -> opt fold_expr data value
+  | Enumerator (id, value) -> opt fold_expr data value
 
 
 (* }}} *)

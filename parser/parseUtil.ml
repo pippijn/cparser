@@ -5,12 +5,7 @@ open Sclass
 let ast_from_opt opt =
   match opt with
   | Some e -> e
-  | None -> EmptyDecl
-
-let stmt_from_opt opt =
-  match opt with
-  | Some e -> e
-  | None -> EmptyStmt
+  | None -> Decls.empty
 
 let list_from_opt opt =
   match opt with
@@ -49,7 +44,8 @@ let merge_string_literals literal info =
 let default_int = PartialBasicType [BT_Default]
 
 let abstract_decl ty =
-  TypedDecl ([], Sclass.empty, ty, EmptyDecl, EmptyDecl, None)
+  { d = TypedDecl ("", Sclass.empty, ty, Decls.empty, Decls.empty, None);
+    d_sloc = Location.dummy; }
 
 let attr = Traits.add_attrs
 

@@ -3,7 +3,7 @@ open Ast
 
 let print_var decl =
   let open Lexing in
-  let loc = fst (Traits.pos_of_decl decl) in
+  let loc = fst (decl.d_sloc) in
   let name = Decls.decl_name decl in
   Printf.printf "%s:%d: %s\n" loc.pos_fname loc.pos_lnum name
 
@@ -24,14 +24,14 @@ let warn_about = function
 
 
 let rec collect_globals globs = function
-  | DeclaringList (_, decls) :: tl ->
+  | { d = DeclaringList (decls) } :: tl ->
       collect_globals (collect_globals globs decls) tl
   (* SUE declarations *)
-  | TypedDecl (_, _, SUEType _, EmptyDecl, _, _) :: tl
+  | { d = TypedDecl (_, _, SUEType _, { d = EmptyDecl }, _, _) } :: tl
   (* Function declarations *)
-  | TypedDecl (_, _, FunctionType (_, _), _, _, _) :: tl ->
+  | { d = TypedDecl (_, _, FunctionType (_, _), _, _, _) } :: tl ->
       collect_globals globs tl
-  | TypedDecl (_, sclasses, _, decl, _, _) :: tl ->
+  | { d = TypedDecl (_, sclasses, _, decl, _, _) } :: tl ->
       let globs =
         if not (Sclass.is_typedef sclasses) && warn_about (Decls.decl_name decl) then
           decl :: globs
@@ -39,8 +39,8 @@ let rec collect_globals globs = function
           globs
       in
       collect_globals globs tl
-  | ToplevelAsm _ :: tl
-  | FunctionDefinition _ :: tl ->
+  | { d = ToplevelAsm _ } :: tl
+  | { d = FunctionDefinition _ } :: tl ->
       collect_globals globs tl
   | hd :: _ ->
       die (Parse_error ("invalid global declaration type", hd));
@@ -49,7 +49,7 @@ let rec collect_globals globs = function
 
 
 let process = function
-  | TranslationUnit (decls) ->
+  | { d = TranslationUnit (decls) } ->
       let globs = collect_globals [] decls in
       if Settings.globals then begin
         print_string "--- global variables ---\n";

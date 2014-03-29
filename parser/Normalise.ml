@@ -16,7 +16,11 @@ let normalise_unit =
   let anon_sue = anonymous "sue" in
   let anon_id  = anonymous "id" in
 
-  let anon_decl () = IdentifierDeclarator ([], anon_id ()) in
+  let anon_decl () =
+    { d = IdentifierDeclarator ([], anon_id ());
+      d_sloc = Location.dummy;
+    }
+  in
 
 
   let rec normalise_struct = Visit.({
@@ -27,15 +31,31 @@ let normalise_unit =
   })
 
 
-  and normalise_decl = function
+  and normalise_decl decl =
+    match decl.d with
     | IdentifierDeclarator (trs, "") ->
-        IdentifierDeclarator (trs, anon_id ())
-    | TypedDecl (trs, sc, (SUEType _ as ty), EmptyDecl, asm, init) when Sclass.is_typedef sc ->
-        normalise_decl (TypedDecl (trs, sc, ty, anon_decl (), asm, init))
-    | StructDeclarator (trs, TypedDecl (dtrs, sc, ty, EmptyDecl, asm, init), bitfield) ->
-        normalise_decl (StructDeclarator (trs, TypedDecl (dtrs, sc, ty, anon_decl (), asm, init), bitfield))
+        { decl with d = IdentifierDeclarator (trs, anon_id ()) }
+    | TypedDecl (scope, sc, (SUEType _ as ty),
+                 { d = EmptyDecl }, asm, init)
+      when Sclass.is_typedef sc ->
+        normalise_decl {
+          decl with
+          d = TypedDecl (scope, sc, ty, anon_decl (), asm, init)
+        }
+    | StructDeclarator (({ d = TypedDecl (scope, sc, ty,
+                                          { d = EmptyDecl },
+                                          asm, init)
+                         } as inner),
+                        bitfield) ->
+        normalise_decl {
+          decl with
+          d = StructDeclarator ({
+              inner with
+              d = TypedDecl (scope, sc, ty, anon_decl (), asm, init)
+            }, bitfield)
+        }
 
-    | n -> Visit.map_decl normalise_struct n
+    | _ -> Visit.map_decl normalise_struct decl
 
 
   and normalise_type = function

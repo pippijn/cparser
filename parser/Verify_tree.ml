@@ -33,37 +33,43 @@ let forall f l =
   List.fold_left (fun x a -> x @ f a) [] l
 
 
-let rec verify_node c = function
-  | DeclaringList (_, decls) -> forall (verify_node c) decls
-  | PreprocessorDirective (_, dir) -> []
+let rec verify_node c node =
+  match node.d with
+  | DeclaringList (decls) -> forall (verify_node c) decls
+  | PreprocessorDirective (dir) -> []
 
   (*** STATEMENTS ***)
   | ToplevelAsm _ -> []
 
   (*** STRUCT/UNION/ENUM ***)
 
-  | Enumerator (_, name, expr) ->
+  | Enumerator (name, expr) ->
       opt verify_expr expr
 
 
   (*** DECLS ***)
 
   (* declarations *)
-  | TypedDecl (_, sclasses, declty, decl, EmptyDecl, None) when Sclass.is_empty sclasses ->
+  | TypedDecl (_, sclasses, declty, decl, { d = EmptyDecl }, None)
+    when Sclass.is_empty sclasses ->
       verify_type declty @
       opt_verify_declr c decl
-  | TypedDecl (_, sclasses, declty, decl, asm, init) as node ->
-      (if c = StructField then bad_decl "bad declaration form in struct member" node else []) @
+  | TypedDecl (_, sclasses, declty, decl, asm, init) ->
+      (if c = StructField then
+         bad_decl "bad declaration form in struct member" node
+       else
+         []
+      ) @
       verify_sc sclasses @
       verify_type declty @
       opt_verify_declr c decl @
       opt_verify_asmdq asm @
       opt verify_expr init
 
-  | FunctionDefinition (_, ty, body) ->
+  | FunctionDefinition (ty, body) ->
       (* type of function definitions is a function type *)
       let rec verify ty =
-        match ty with
+        match ty.d with
         | TypedDecl (_, _, (FunctionType _ as ty), _, _, _) ->
             verify_type ty
         | _ -> bad_decl "function definition does not have function type" ty
@@ -71,27 +77,32 @@ let rec verify_node c = function
       verify ty @
       verify_stmt body
 
-  | n -> die (Parse_error ("unexpected node", n))
+  | _ -> die (Parse_error ("unexpected node", node))
 
 
-and verify_declr c = function
-  | DeclaringList (_, decls) ->
+and verify_declr c node =
+  match node.d with
+  | DeclaringList (decls) ->
       forall (verify_declr c) decls
-  | StructDeclarator (_, decl, bitfield) as node ->
-      (if c <> StructField then bad_decl "found struct declarator outside struct" node else []) @
+  | StructDeclarator (decl, bitfield) ->
+      (if c <> StructField then
+         bad_decl "found struct declarator outside struct" node
+       else
+         []
+      ) @
       verify_decl c decl @
       opt verify_expr bitfield
   | WildcardDecl _
   | IdentifierDeclarator _ -> []
-  | n -> die (Parse_error ("unexpected declarator", n))
+  | _ -> die (Parse_error ("unexpected declarator", node))
 
 
 and opt_verify_asmdq = function
-  | EmptyDecl -> []
+  | { d = EmptyDecl } -> []
   | n -> verify_asmdq n
 
 and opt_verify_declr c = function
-  | EmptyDecl -> []
+  | { d = EmptyDecl } -> []
   | n -> verify_declr c n
 
 and opt_verify_stmt = function
@@ -137,7 +148,7 @@ and verify_stmt stmt =
   | LocalLabel (labels) ->
       forall (function "" -> bad_stmt "empty label" stmt | _ -> []) labels
   | AsmStatement (volatile, code, in_regs, out_regs, clobber, labels) ->
-      let verify (AsmArgument (_, constr, expr)) = verify_expr expr in
+      let verify (AsmArgument (constr, expr)) = verify_expr expr in
       forall verify in_regs @
       forall verify out_regs
 
@@ -267,7 +278,7 @@ and verify_type = function
   (*** STRUCT/UNION/ENUM ***)
 
   (* allow empty structs and unions *)
-  | SUEType (_, _, _, [EmptyDecl]) -> []
+  | SUEType (_, _, _, [{ d = EmptyDecl }]) -> []
 
   (* struct/union members *)
   | SUEType (_, (SUE_Union | SUE_Struct), _, members) ->
@@ -300,10 +311,10 @@ and verify_asmdq asm = []
 
 let verify tu =
   let errors =
-    match tu with
+    match tu.d with
     | TranslationUnit (decls) ->
         forall (verify_decl TopLevel) decls
-    | n ->
-        verify_node Other n
+    | _ ->
+        verify_node Other tu
   in
   (List.length errors) = 0

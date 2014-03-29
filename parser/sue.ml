@@ -3,14 +3,14 @@ open Ast
 
 let member_types =
   let rec collect types decl =
-    match decl with
-    | DeclaringList (_, decls) ->
+    match decl.d with
+    | DeclaringList (decls) ->
         List.fold_left collect types decls
-    | StructDeclarator (_, decl, _) ->
+    | StructDeclarator (decl, _) ->
         collect types decl
     | TypedDecl (_, _, ty, _, _, _) ->
         ty :: types
-    | decl -> die (Declaration_error ("Sue.member_types", None, [decl]))
+    | _ -> die (Declaration_error ("Sue.member_types", None, [decl]))
   in
 
   function
@@ -21,14 +21,14 @@ let member_types =
 
 let member_decls =
   let rec collect fields decl =
-    match decl with
-    | DeclaringList (_, decls) ->
+    match decl.d with
+    | DeclaringList (decls) ->
         List.fold_left collect fields decls
-    | StructDeclarator (_, decl, _) ->
+    | StructDeclarator (decl, _) ->
         collect fields decl
-    | TypedDecl _ as decl ->
+    | TypedDecl _ ->
         decl :: fields
-    | decl -> die (Declaration_error ("Sue.member_decls", None, [decl]))
+    | _ -> die (Declaration_error ("Sue.member_decls", None, [decl]))
   in
 
   function

@@ -203,7 +203,7 @@ and scope_and_position = Attributes.position_scope list
 (** {6 Statements} *)
 
 and asm_argument =
-  | AsmArgument of position * (*constraint*)string list * (*expr*)expr
+  | AsmArgument of (*constraint*)string list * (*expr*)expr
 
 and stmt = {
   s : stmt_;
@@ -317,33 +317,38 @@ and ctyp =
 
 (** {6 Declarations} *)
 
-and decl =
+and decl = {
+  d : decl_;
+  d_sloc : Location.t;
+}
+
+and decl_ =
   | EmptyDecl
 
   | TranslationUnit of (*decls*)decl list
 
   (* Wildcards *)
-  | WildcardDecl of position * string
+  | WildcardDecl of string
 
   (* Syntax errors *)
-  | SyntaxError of position * (*msg*)string * (*node*)decl
+  | SyntaxError of (*msg*)string * (*node*)decl
 
   (* #include etc. *)
-  | PreprocessorDirective of position * string
+  | PreprocessorDirective of string
 
   (* Toplevel __asm__ *)
-  | ToplevelAsm of position * (*code*)string list
+  | ToplevelAsm of (*code*)string list
 
   (* Declarations *)
-  | AsmSpecifier of position * (*register*)string list
-  | FunctionDefinition of position * (*decl*)decl * (*body*)stmt
+  | AsmSpecifier of (*register*)string list
+  | FunctionDefinition of (*decl*)decl * (*body*)stmt
   | IdentifierDeclarator of annotations * (*id*)string
-  | StructDeclarator of position * (*decl*)decl * (*bitfield*)expr option
-  | TypedDecl of scope_and_position * Sclass.storage_classes * (*type*)ctyp * (*untyped*)decl * (*asm*)decl * (*init*)expr option
-  | DeclaringList of position * (*decls*)decl list
+  | StructDeclarator of (*decl*)decl * (*bitfield*)expr option
+  | TypedDecl of (*scope*)string * Sclass.storage_classes * (*type*)ctyp * (*untyped*)decl * (*asm*)decl * (*init*)expr option
+  | DeclaringList of (*decls*)decl list
 
   (* Struct/union/enum types *)
-  | Enumerator of position * (*id*)string * (*value*)expr option
+  | Enumerator of (*id*)string * (*value*)expr option
   deriving (Show)
 
 

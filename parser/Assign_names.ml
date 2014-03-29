@@ -10,11 +10,6 @@ let assign_names tu =
     name
   in
 
-  let update trs nm =
-    Attributes.set_scope (next_name nm) trs
-  in
-
-
   let rec assign_names_struct nm = Visit.({
     map_type = assign_names_type nm;
     map_expr = assign_names_expr nm;
@@ -23,23 +18,37 @@ let assign_names tu =
   })
 
 
-  and assign_names_decl nm =
+  and assign_names_decl nm decl =
     let resume nm = Visit.map_decl (assign_names_struct nm) in
-    function
+    match decl.d with
     (* XXX: SUE member scopes are here, because types currently have no traits *)
-    | TypedDecl (trs, sc, (SUEType (_, _, nm, _) as ty), untyped, asm, init) ->
-        let trs = update trs nm in
-        resume nm (TypedDecl (trs, sc, ty, untyped, asm, init))
+    | TypedDecl (_, sc, (SUEType (_, _, nm, _) as ty), untyped, asm, init) ->
+        let scope = next_name nm in
+        resume nm {
+          decl with
+          d = TypedDecl (scope, sc, ty, untyped, asm, init)
+        }
     (* Function declarations also have their own scope *)
-    | TypedDecl (trs, sc, (FunctionType _ as ty), untyped, asm, init) ->
-        let trs = update trs nm in
-        resume nm (TypedDecl (trs, sc, ty, untyped, asm, init))
-    | FunctionDefinition (dtrs, TypedDecl (trs, sc, ty, untyped, asm, init), body) ->
+    | TypedDecl (_, sc, (FunctionType _ as ty), untyped, asm, init) ->
+        let scope = next_name nm in
+        resume nm {
+          decl with
+          d = TypedDecl (scope, sc, ty, untyped, asm, init)
+        }
+    | FunctionDefinition ({ d = TypedDecl (_, sc, ty, untyped, asm, init) },
+                          body) ->
         let nm = Decls.decl_name untyped in
-        let trs = update trs nm in
-        let decl = resume nm (TypedDecl (trs, sc, ty, untyped, asm, init)) in
-        FunctionDefinition (dtrs, decl, assign_names_stmt nm body)
-    | n -> resume nm n
+        let scope = next_name nm in
+        let decl =
+          resume nm {
+            decl with
+            d = TypedDecl (scope, sc, ty, untyped, asm, init)
+          }
+        in
+        { decl with
+          d = FunctionDefinition (decl, assign_names_stmt nm body)
+        }
+    | _ -> resume nm decl
 
 
   and assign_names_expr nm = function

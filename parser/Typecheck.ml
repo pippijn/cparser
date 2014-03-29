@@ -207,8 +207,9 @@ let rec tcheck_struct env = Visit.({
 
 (* {{{ tcheck_decl *)
 
-and tcheck_decl env = function
-  | TypedDecl (trs, sc, ty, untyped, asm, init) ->
+and tcheck_decl env decl =
+  match decl.d with
+  | TypedDecl (scope, sc, ty, untyped, asm, init) ->
       let opens_scope, tag, is_sue_definition =
         match ty with
         | SUEType (_, suekind, tag, members) ->
@@ -229,7 +230,7 @@ and tcheck_decl env = function
       in
 
       if opens_scope then
-        Csymtab.enter_scope (Attributes.scope trs);
+        Csymtab.enter_scope scope;
 
       (* First check type. *)
       let ty = tcheck_type env ty in
@@ -245,7 +246,10 @@ and tcheck_decl env = function
 
       (* Create a temporary declaration so we may have a type-checked SUE body
        * when checking the initialiser. *)
-      let decl = TypedDecl (trs, sc, ty, untyped, asm, init) in
+      let decl = {
+        decl with
+        d = TypedDecl (scope, sc, ty, untyped, asm, init)
+      } in
 
       (* Insert tag. *)
       maybe_insert Csymtab.insert_decl decl;
@@ -257,15 +261,18 @@ and tcheck_decl env = function
       let init = Option.map (tcheck_expr env) init in
 
       (* Compose the parts into a new declaration. *)
-      let decl = TypedDecl (trs, sc, ty, untyped, asm, init) in
+      let decl = {
+        decl with
+        d = TypedDecl (scope, sc, ty, untyped, asm, init)
+      } in
 
       (* Insert tag again with updated [decl]. *)
       maybe_insert Csymtab.replace_decl decl;
 
-      begin match untyped with
+      begin match untyped.d with
       | EmptyDecl ->
           () (* Pure SUE declaration, no declarator. *)
-      | untyped ->
+      | _ ->
           Csymtab.insert_decl (Decls.decl_name untyped) Symtab.Ordinary decl
       end;
 
@@ -282,7 +289,7 @@ and tcheck_decl env = function
 
       decl
 
-  | FunctionDefinition (trs, decl, body) ->
+  | FunctionDefinition (decl, body) ->
       (* First type-check declaration. *)
       let decl = tcheck_decl env decl in
       (* While checking the body, [decl] is the enclosing function. *)
@@ -290,9 +297,9 @@ and tcheck_decl env = function
       (* Check the body with updated [env]. *)
       let body = tcheck_stmt env body in
 
-      FunctionDefinition (trs, decl, body)
+      { decl with d = FunctionDefinition (decl, body) }
 
-  | n -> Visit.map_decl (tcheck_struct env) n
+  | _ -> Visit.map_decl (tcheck_struct env) decl
 
 (* }}} *)
 (* {{{ tcheck_stmt *)
@@ -411,10 +418,11 @@ and tcheck_expr env untyped =
                                      Some "6.2.1p2", [untyped]))
           in
           let ty, value =
-            match sym with
-            | Enumerator (_, _, Some { e = TypedExpression (ty, value, _) }) ->
+            match sym.d with
+            | Enumerator (_, Some { e = TypedExpression (ty, value, _) }) ->
                 ty, value
-            | decl -> Decls.decl_type decl, Constant.NonConst
+            | _ ->
+                Decls.decl_type sym, Constant.NonConst
           in
           TypedExpression (ty, value, untyped)
 
@@ -431,14 +439,19 @@ and tcheck_type env untyped =
       let _, members =
         List.fold_left (fun (value, members) enum ->
           let value, enum, name =
-            match enum with
-            | Enumerator (trs, name, None) ->
+            match enum.d with
+            | Enumerator (name, None) ->
                 (succ_mach_int value,
-                 Enumerator (trs, name, Some (Const_eval.make_int value)),
+                 { enum with
+                   d = Enumerator (name, Some (Const_eval.make_int value))
+                 },
                  name)
-            | Enumerator (_, name, Some value) as enum ->
-                succ_mach_int (Constant.to_mach_int (value_of value)), enum, name
-            | decl -> die (Declaration_error ("invalid declaration in enum", None, [decl]))
+            | Enumerator (name, Some value) ->
+                (succ_mach_int (Constant.to_mach_int (value_of value)),
+                 enum,
+                 name)
+            | _ -> die (Declaration_error (
+                "invalid declaration in enum", None, [enum]))
           in
           Csymtab.insert_decl name Symtab.Ordinary enum;
           value, enum :: members

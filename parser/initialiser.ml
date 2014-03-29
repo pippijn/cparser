@@ -93,7 +93,11 @@ let check_init_list decl dtype init toplevel =
     if not (is_initialiser init) then
       ignore (Conversions.assignment init dtype)
     else
-      sue_match_init_list (Sue.member_decls dtype) decl (ensure_initialiser_expr init decl) toplevel
+      sue_match_init_list
+        (Sue.member_decls dtype)
+        decl
+        (ensure_initialiser_expr init decl)
+        toplevel
   else if Type.is_union dtype then
     die (Type_error ("unimplemented union", None, [dtype]))
   else
@@ -107,14 +111,16 @@ let check_init_list decl dtype init toplevel =
                     global scope ([true]) or within a function ([false]). *)
 let check_decl_init decl dtype toplevel =
   (* Deconstruct declaration. *)
-  match decl with
+  match decl.d with
   | TypedDecl (trs, sc, ty, untyped, asm, Some init) ->
       (* §3
        * The type of the entity to be initialized shall be an array of unknown size or an object type
        * that is not a variable length array type.
        *)
       if not (Type.is_object dtype || Type.is_unsized_array dtype) then
-        die (Declaration_error ("must be object type or an incomplete array", Some "6.7.8p3", [decl]));
+        die (Declaration_error (
+            "must be object type or an incomplete array",
+            Some "6.7.8p3", [decl]));
 
       (* §4
        * All the expressions in an initializer for an object that has static storage duration shall be
@@ -139,4 +145,4 @@ let check_decl_init decl dtype toplevel =
       check_init_list decl dtype init true
 
 
-  | decl -> die (Declaration_error ("unexpected declaration", None, [decl]))
+  | _ -> die (Declaration_error ("unexpected declaration", None, [decl]))

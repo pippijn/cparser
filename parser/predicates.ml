@@ -1,7 +1,8 @@
 open Ast
 
 
-let is_decl = function
+let is_decl decl =
+  match decl.d with
   | WildcardDecl _
   | PreprocessorDirective _
   | DeclaringList _

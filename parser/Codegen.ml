@@ -88,52 +88,56 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
 
   (* Toplevel nodes and declarations *)
   let rec output_node node =
-    let pos = Traits.pos_of_decl node in
+    let pos = node.d_sloc in
     let output_start_pos () =    pl true  (fst pos) in
     let output_end_pos   = lazy (pl false (snd pos)) in
 
     output_start_pos ();
-    begin match node with
+    begin match node.d with
     | TranslationUnit decls ->
         iter output_node decls
-    | PreprocessorDirective (_, dir) ->
+    | PreprocessorDirective (dir) ->
         p "\n";
         p dir;
         p "\n"
-    | DeclaringList (_, decls) ->
+    | DeclaringList (decls) ->
         output_decl_list decls; p ";"
-    | TypedDecl _ as decl ->
-        output_decl_list [decl]
+    | TypedDecl _ ->
+        output_decl_list [node]
     | IdentifierDeclarator (trs, id) ->
         opt output_attrs (Attributes.attribute_opt trs);
         if not (is_anon id) then
           p id
-    | FunctionDefinition (_, decl, body) ->
+    | FunctionDefinition (decl, body) ->
         output_node decl;
         output_stmt body
-    | WildcardDecl (_, wc) ->
+    | WildcardDecl (wc) ->
         p wc
-    | AsmSpecifier (_, template) ->
+    | AsmSpecifier (template) ->
         t KW_ASM;
         p "("; iter p template; p ")"
 
-    | Enumerator (_, name, None) ->
+    | Enumerator (name, None) ->
         p name
-    | Enumerator (_, name, Some value) ->
+    | Enumerator (name, Some value) ->
         p name; p "="; output_expr Operator.highest value
 
-    | ToplevelAsm (_, code) ->
+    | ToplevelAsm (code) ->
         t KW_ASM;
         p "("; iter p code; p ")"; p ";";
 
     | EmptyDecl ->
         ()
 
-    | StructDeclarator _ as n ->
-        die (Declaration_error ("found struct declarator outside aggregate definition", None, [n]))
+    | StructDeclarator _ ->
+        die (Declaration_error (
+            "found struct declarator outside aggregate definition",
+            None, [node]))
 
-    | SyntaxError _ as n ->
-        die (Declaration_error ("cannot output code with syntax errors", None, [n]))
+    | SyntaxError _ ->
+        die (Declaration_error (
+            "cannot output code with syntax errors",
+            None, [node]))
     end;
     Lazy.force output_end_pos
 
@@ -236,7 +240,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
     | DeclarationStatement decl ->
         output_node decl
     | AsmStatement (volatile, code, in_regs, out_regs, clobber, labels) ->
-        let output_asm_arg (AsmArgument (_, constr, expr)) =
+        let output_asm_arg (AsmArgument (constr, expr)) =
           iter p constr;
           p "("; output_expr expr; p ")"
         in
@@ -637,9 +641,9 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
     in
 
     function
-    | TypedDecl (_, sclasses, ty, decl, asm, init) as first :: tl ->
+    | { d = TypedDecl (_, sclasses, ty, decl, asm, init) } as first :: tl ->
         let out = function
-          | TypedDecl (_, _, ty, decl, asm, init) ->
+          | { d = TypedDecl (_, _, ty, decl, asm, init) } ->
               output_decl_unbased decl ty;
               output_node asm;
               opt_output_init init
@@ -650,13 +654,13 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
 
         comma_separated out first tl
 
-    | StructDeclarator (_, decl, bitfield) as first :: tl ->
+    | { d = StructDeclarator (decl, bitfield) } as first :: tl ->
         let out =
           let output_declr decl = output_decl_unbased (Decls.decl_decl decl) (Decls.decl_type decl) in
           function
-          | StructDeclarator (_, decl, None) ->
+          | { d = StructDeclarator (decl, None) } ->
               output_declr decl;
-          | StructDeclarator (_, decl, Some bitfield) ->
+          | { d = StructDeclarator (decl, Some bitfield) } ->
               output_declr decl;
               p ":"; output_expr op_assign bitfield;
           | n -> die (Declaration_error ("output_decl_list", None, [n]))
@@ -670,21 +674,22 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
 
 
   (* Output just one declaration. Useful in error messages. *)
-  and output_single_decl = function
+  and output_single_decl decl =
+    match decl.d with
     | TypedDecl (_, sclasses, ty, decl, asm, init) ->
         output_storage_classes p sclasses;
         output_type (Types.base_type ty);
         output_decl decl (Types.unbase_type ty)
-    | StructDeclarator (_, decl, None) ->
+    | StructDeclarator (decl, None) ->
         output_single_decl decl
-    | StructDeclarator (_, decl, Some bitfield) ->
+    | StructDeclarator (decl, Some bitfield) ->
         output_single_decl decl;
         p ":"; output_expr op_assign bitfield;
-    | FunctionDefinition _ as fdef ->
-        output_node fdef
-    | Enumerator _ as enum ->
-        output_node enum
-    | decl -> die (Declaration_error ("invalid declaration in output_single_decl", None, [decl]))
+    | FunctionDefinition _ ->
+        output_node decl
+    | Enumerator _ ->
+        output_node decl
+    | _ -> die (Declaration_error ("invalid declaration in output_single_decl", None, [decl]))
 
 
   in function
