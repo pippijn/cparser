@@ -301,29 +301,18 @@ and ctyp =
 
   (* Wildcards *)
   | WildcardType of position * string
-  (** [WildcardType (_, wildcard)] *)
 
   (* Types *)
   | PartialBasicType of partial_basic_type list
-  (** [PartialBasicType (basics)] *)
   | BasicType of basic_type
-  (** [BasicType (basic)] *)
   | QualifiedType of Tqual.type_qualifiers * (*unqual*)ctyp
-  (** [QualifiedType (tqs, unqual)] *)
   | PointerType of (*base*)ctyp
-  (** [PointerType (base)] *)
   | SUEType of annotations * sue_kind * (*tag*)string * (*members*)decl list
-  (** [SUEType (_, kind, tag, members)] *)
   | TypedefType of (*name*)string
-  (** [TypedefType (name)] *)
   | ArrayType of (*arity*)expr option * (*base*)ctyp
-  (** [ArrayType (arity, base)] *)
   | FunctionType of (*rettype*)ctyp * (*params*)decl list
-  (** [FunctionType (rettype, params)] *)
   | TypeofExpr of (*expr*)expr
-  (** [TypeofExpr (expr)] *)
   | TypeofType of (*ty*)ctyp
-  (** [TypeofType (type)] *)
 
 
 (** {6 Declarations} *)
@@ -332,41 +321,29 @@ and decl =
   | EmptyDecl
 
   | TranslationUnit of (*decls*)decl list
-  (** [TranslationUnit (decls)] *)
 
   (* Wildcards *)
   | WildcardDecl of position * string
-  (** [WildcardDecl (_, wildcard)] *)
 
   (* Syntax errors *)
   | SyntaxError of position * (*msg*)string * (*node*)decl
-  (** [SyntaxError (_, msg, node)] *)
 
   (* #include etc. *)
   | PreprocessorDirective of position * string
-  (** [PreprocessorDirective (_, directive)] *)
 
   (* Toplevel __asm__ *)
   | ToplevelAsm of position * (*code*)string list
-  (** [ToplevelAsm (_, code)] *)
 
   (* Declarations *)
   | AsmSpecifier of position * (*register*)string list
-  (** [AsmSpecifier (_, register)] *)
   | FunctionDefinition of position * (*decl*)decl * (*body*)stmt
-  (** [FunctionDefinition (_, decl, body)] *)
   | IdentifierDeclarator of annotations * (*id*)string
-  (** [IdentifierDeclarator (_, id)] *)
   | StructDeclarator of position * (*decl*)decl * (*bitfield*)expr option
-  (** [StructDeclarator (_, decl, bitfield)] *)
   | TypedDecl of scope_and_position * Sclass.storage_classes * (*type*)ctyp * (*untyped*)decl * (*asm*)decl * (*init*)expr option
-  (** [TypedDecl (_, storage_classes, type, untyped_decl, asm, init)] *)
   | DeclaringList of position * (*decls*)decl list
-  (** [DeclaringList (_, decls)] *)
 
   (* Struct/union/enum types *)
   | Enumerator of position * (*id*)string * (*value*)expr option
-  (** [Enumerator (_, id, value)] *)
   deriving (Show)
 
 
