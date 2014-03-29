@@ -36,95 +36,80 @@ let type_assignable_modulo_cv ltype rtype =
 
 let unary expr =
   { expr with
-    e =
-      match expr.e with
-      | TypedExpression (ty, value, expr) ->
-          let ty =
-            { ty with
-              t =
-                match ty.t with
-                (* Convert char and short to int, keeping their signedness. *)
-                | BasicType (SChar | SShort) -> BasicType SInt
-                | BasicType (UChar | UShort) -> BasicType UInt
-                | BasicType Char ->
-                    if Platform.char_is_signed then
-                      BasicType SInt
-                    else
-                      BasicType UInt
-                (* Convert arrays to pointers. *)
-                | ArrayType (_, base) -> PointerType (base)
-                (* Convert functions to pointers to functions. *)
-                | FunctionType _ -> PointerType (ty)
-                | _ -> ty.t
-            }
-          in
-
-          TypedExpression (ty, value, expr)
-      | _ -> die (Expression_error ("usual unary conversions", None, [expr]))
+    e_type =
+      { expr.e_type with
+        t =
+          match expr.e_type.t with
+          (* Convert char and short to int, keeping their signedness. *)
+          | BasicType (SChar | SShort) -> BasicType SInt
+          | BasicType (UChar | UShort) -> BasicType UInt
+          | BasicType Char ->
+              if Platform.char_is_signed then
+                BasicType SInt
+              else
+                BasicType UInt
+          (* Convert arrays to pointers. *)
+          | ArrayType (_, base) -> PointerType base
+          (* Convert functions to pointers to functions. *)
+          | FunctionType _ -> PointerType expr.e_type
+          | _ -> expr.e_type.t
+      }
   }
 
 
 let binary a b =
-  match a.e, b.e with
-  | TypedExpression (lty, lvalue, lexpr), TypedExpression (rty, rvalue, rexpr) ->
-      let rank bt =
-        match bt with
-        | SInt		-> 1
-        | UInt		-> 2
-        | SLong		-> 3
-        | ULong		-> 4
-        | SLongLong	-> 5
-        | ULongLong	-> 6
-        | Float		-> 7
-        | Double	-> 8
-        | LongDouble	-> 9
-        | bt ->
-            die (Type_error ("invalid basic type", None,
-                             [{ t = BasicType bt;
-                                t_sloc = Location.dummy;
-                              }]))
-      in
+  let rank bt =
+    match bt with
+    | SInt		-> 1
+    | UInt		-> 2
+    | SLong		-> 3
+    | ULong		-> 4
+    | SLongLong	-> 5
+    | ULongLong	-> 6
+    | Float		-> 7
+    | Double	-> 8
+    | LongDouble	-> 9
+    | bt ->
+        die (Type_error ("invalid basic type", None,
+                         [{ t = BasicType bt;
+                            t_sloc = Location.dummy;
+                          }]))
+  in
 
-      let convert to_ty expr =
-        match expr.e with
-        | TypedExpression (from_ty, evalue, expr) ->
-            (* Convert value to floating point, if the target type is a
-             * floating point type. *)
-            let value =
-              if Type.is_floating to_ty.t && not (Type.is_floating from_ty.t) then
-                let open Constant in
-                match evalue with
-                | IntValue i ->
-                    FloatValue (Mach_int.float_of_mach_int i)
-                | _ -> failwith "conversion"
-              else
-                evalue
-            in
+  let convert to_ty expr =
+    (* Convert value to floating point, if the target type is a
+     * floating point type. *)
+    { expr with
+      e_cval = 
+        if Type.is_floating to_ty.t && not (Type.is_floating expr.e_type.t) then
+          let open Constant in
+          match expr.e_cval with
+          | IntValue i ->
+              FloatValue (Mach_int.float_of_mach_int i)
+          | _ -> failwith "conversion"
+        else
+          expr.e_cval;
+      e_type = to_ty;
+    }
+  in
 
-            TypedExpression (to_ty, value, expr)
-        | _ ->
-            die (Expression_error ("untyped expression in implicit conversion", None, [expr]))
-      in
+  begin match a.e_type.t, b.e_type.t with
+  (* If the types are already equal, no conversion is required. *)
+  | lty, rty when Type.equal lty rty -> a, b
 
-      begin match lty.t, rty.t with
-      (* If the types are already equal, no conversion is required. *)
-      | lty, rty when Type.equal lty rty -> a, b
+  (* For basic types, convert the smaller type to the bigger type. *)
+  | BasicType lbt, BasicType rbt ->
+      if rank lbt < rank rbt then
+        (* Convert left expression to right type. *)
+        convert b.e_type a, b
+      else
+        (* Convert right expression to left type. *)
+        a, convert a.e_type b
 
-      (* For basic types, convert the smaller type to the bigger type. *)
-      | BasicType lbt, BasicType rbt ->
-          if rank lbt < rank rbt then
-            (* Convert left expression to right type. *)
-            { a with e = convert rty a }, b
-          else
-            (* Convert right expression to left type. *)
-            a, { b with e = convert lty b }
-
-      (* Complex types undergo no conversions. *)
-      | _ ->
-          a, b
-      end
-
-  | _ -> die (Expression_error ("usual binary conversions", None, [a; b]))
+  (* Complex types undergo no conversions. *)
+  | _ ->
+      a, b
+  end
 
 
 (**
@@ -160,12 +145,11 @@ let rec coerce ptr2intp ptr2ptrp rhs ltype =
       false
   in
 
-  let rtype = Type.type_of rhs in
+  let rtype = rhs.e_type in
 
 
   if Type.is_arithmetic rtype.t && Type.is_arithmetic ltype.t then
     rhs
-
 
   else if Type.is_pointer rtype.t && Type.is_pointer ltype.t then
     if ptr2ptrp then

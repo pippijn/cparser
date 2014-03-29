@@ -3,13 +3,10 @@ open CorePervasives
 
 
 let rec is_link_time_constant expr =
-  match expr.e with
-  | TypedExpression (ty, Constant.NonConst, expr) ->
-      is_link_time_constant expr
-
   (* A compile-time constant value is also a link-time constant. *)
-  | TypedExpression _ -> true
+  expr.e_cval <> Constant.NonConst ||
 
+  match expr.e with
   (* Check for pointer arithmetic involving constant addresses. *)
   | BinaryExpression ((OP_Add | OP_Subtract), lhs, rhs) ->
       is_link_time_constant lhs && is_link_time_constant rhs
@@ -22,16 +19,13 @@ let rec require_constant_initialiser expr =
   | InitialiserList (inits) ->
       List.iter require_constant_initialiser inits
 
-  | TypedExpression _ ->
+  | _ ->
       if not (is_link_time_constant expr) then
         die (Expression_error ("initialiser must be constant", Some "6.7.8p4", [expr]))
-
-  | _ -> die (Expression_error ("invalid constant initialiser", None, [expr]))
 
 
 let rec is_initialiser expr =
   match expr.e with
-  | TypedExpression (_, _, expr) -> is_initialiser expr
   | InitialiserList _ -> true
   | IntegerLiteral _ -> false
   | _ -> die (Expression_error ("is_initialiser", None, [expr]))
@@ -83,10 +77,7 @@ let sue_match_init_list =
  *)
 let check_init_list decl dtype init toplevel =
   if Type.is_scalar dtype.t then
-    match init.e with
-    | TypedExpression (_, _, expr) ->
-        ignore (Conversions.assignment init dtype)
-    | _ -> die (Expression_error ("is_initialiser", None, [init]))
+    ignore (Conversions.assignment init dtype)
   else if Type.is_array dtype.t then
     die (Type_error ("unimplemented array", None, [dtype]))
   else if Type.is_struct dtype.t then

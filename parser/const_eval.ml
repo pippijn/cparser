@@ -88,19 +88,16 @@ let eval_arithmetic op lhs rhs =
 
 
 let make_int value =
-  { e = TypedExpression (
-       { t = BasicType SInt;
-         t_sloc = Location.dummy;
-       },
-       IntValue value,
-       { e = IntegerLiteral (LIT_Dec, string_of_mach_int value, None);
-         e_sloc = Location.dummy;
-       }
-     );
+  { e = IntegerLiteral (LIT_Dec, string_of_mach_int value, None);
     e_sloc = Location.dummy;
+    e_type = { t = BasicType SInt;
+               t_sloc = Location.dummy;
+             };
+    e_cval = IntValue value;
   }
 
 
-let is_zero = function
-  | { e = TypedExpression (_, IntValue value, _) } -> value = zero_mach_int
+let is_zero expr =
+  match expr.e_cval with
+  | IntValue v -> v = zero_mach_int
   | _ -> false

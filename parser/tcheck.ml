@@ -66,13 +66,10 @@ let string_type length kind chars =
 
   { t = ArrayType (
        Some {
-         e = TypedExpression (
-             Platform.size_t,
-             Constant.IntValue (Mach_int.mach_int_of_int length),
-             { e = IntegerLiteral (LIT_Dec, string_of_int length, None);
-               e_sloc = Location.dummy;
-             });
+         e = IntegerLiteral (LIT_Dec, string_of_int length, None);
          e_sloc = Location.dummy;
+         e_type = Platform.size_t;
+         e_cval = Constant.IntValue (Mach_int.mach_int_of_int length);
        },
        { t = BasicType bt;
          t_sloc = Location.dummy;

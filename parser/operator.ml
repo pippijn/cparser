@@ -92,8 +92,6 @@ let highest = PseudoOperator OP_HighestPrecedence
 
 let rec wrap expr =
   match expr.e with
-  | TypedExpression (_, _, expr) -> wrap expr 
-
   | TernaryExpression (op, _, _, _) -> TernaryOperator op
   | BinaryExpression (op, _, _) -> BinaryOperator op
   | UnaryExpression (op, _) -> UnaryOperator op

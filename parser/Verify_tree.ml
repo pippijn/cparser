@@ -156,9 +156,12 @@ and verify_stmt stmt =
 
 
 and verify_expr expr =
-  match expr.e with
-  | TypedExpression (ty, value, expr) -> verify_type ty @ verify_expr expr
+  begin match expr.e_type with
+    | { t = EmptyType } -> []
+    | ty -> verify_type ty
+  end @
 
+  match expr.e with
   | WildcardExpr ("") -> bad_expr "empty wildcard" expr
   | WildcardExpr _ -> []
 

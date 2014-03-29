@@ -2,9 +2,6 @@ open Ast
 open Mach_int
 
 
-let value_of = Type.value_of
-let type_of = Type.type_of
-
 (****************************************************************************
  *
  * Functions with too much logic or reusability to write in the match
@@ -15,18 +12,16 @@ let type_of = Type.type_of
 (* {{{ resolve_type *)
 
 let resolve_type expr =
-  match expr.e with
-  | TypedExpression (ty, value, expr) ->
-      { expr with
-        e = TypedExpression (Type.resolve ty, value, expr) }
-  | _ -> die (Expression_error (",,", None, [expr]))
+  { expr with
+    e_type = Type.resolve expr.e_type;
+  }
 
 (* }}} *)
 (* {{{ check_assignment *)
 
 let check_assignment op lhs rhs =
-  let ltype = type_of lhs in
-  let rtype = type_of rhs in
+  let ltype = lhs.e_type in
+  let rtype = rhs.e_type in
 
   if not (Type.is_modifiable_lvalue lhs) then
     die (Expression_error ("left operand must be modifiable lvalue", None, [lhs]));
@@ -63,8 +58,8 @@ let check_arithmetic op lhs rhs =
     | _ -> Conversions.binary lhs rhs
   in
 
-  let ltype = type_of lhs in
-  let rtype = type_of rhs in
+  let ltype = lhs.e_type in
+  let rtype = rhs.e_type in
 
   (* Canonicalise pointer arithmetic expressions: handle int+ptr as ptr+int. *)
   let ltype, lhs, rtype, rhs =
@@ -145,8 +140,8 @@ let check_arithmetic op lhs rhs =
           (* At this point, we don't know the value of pointer arithmetic. *)
           ltype, Constant.NonConst
         else
-          let lval = value_of lhs in
-          let rval = value_of rhs in
+          let lval = lhs.e_cval in
+          let rval = rhs.e_cval in
 
           (* Expression type is that of the left hand side (after conversions and canonicalisation). *)
           ltype, Const_eval.eval_arithmetic op lval rval
@@ -156,8 +151,8 @@ let check_arithmetic op lhs rhs =
           (* At this point, we don't know the value of pointer arithmetic. *)
           Platform.ptrdiff_t, Constant.NonConst
         else
-          let lval = value_of lhs in
-          let rval = value_of rhs in
+          let lval = lhs.e_cval in
+          let rval = rhs.e_cval in
           ltype, Const_eval.eval_arithmetic op lval rval
 
     | OP_BitwiseAnd
@@ -168,14 +163,14 @@ let check_arithmetic op lhs rhs =
     | OP_Multiply
     | OP_ShiftLeft
     | OP_ShiftRight ->
-        let lval = value_of lhs in
-        let rval = value_of rhs in
+        let lval = lhs.e_cval in
+        let rval = rhs.e_cval in
         ltype, Const_eval.eval_arithmetic op lval rval
 
     | OP_LogicalAnd
     | OP_LogicalOr ->
-        let lval = value_of lhs in
-        let rval = value_of rhs in
+        let lval = lhs.e_cval in
+        let rval = rhs.e_cval in
         { t = PartialBasicType [BT_Bool];
           t_sloc = Location.dummy;
         }, Const_eval.eval_arithmetic op lval rval
@@ -342,95 +337,110 @@ and tcheck_stmt env stmt =
 
 and tcheck_expr env untyped =
   let untyped = Visit.map_expr (tcheck_struct env) untyped in
-  { untyped with
-    e =
-      match untyped.e with
-      | FloatingLiteral (kind, str, suffix) ->
-          TypedExpression (Tcheck.float_type suffix,
-                           Const_eval.parse_float kind str,
-                           untyped)
 
-      | IntegerLiteral (kind, str, suffix) ->
-          TypedExpression (Tcheck.int_type suffix,
-                           Const_eval.parse_int kind str,
-                           untyped)
+  match untyped.e with
+  | FloatingLiteral (kind, str, suffix) ->
+      { untyped with
+        e_type = Tcheck.float_type suffix;
+        e_cval = Const_eval.parse_float kind str;
+      }
 
-      | StringLiteral (kind, strlist) ->
-          let len, chars = Const_eval.parse_string_literal strlist in
-          let len =
-            match kind with
-            | LIT_String -> String.length chars
-            | LIT_WString -> len
-          in
-          TypedExpression (Tcheck.string_type len kind chars,
-                           Const_eval.make_string kind chars, untyped)
+  | IntegerLiteral (kind, str, suffix) ->
+      { untyped with
+        e_type = Tcheck.int_type suffix;
+        e_cval = Const_eval.parse_int kind str;
+      }
 
-      | BinaryExpression (op, lhs, rhs) ->
-          let lhs = resolve_type lhs in
-          let rhs = resolve_type rhs in
+  | StringLiteral (kind, strlist) ->
+      let len, chars = Const_eval.parse_string_literal strlist in
+      let len =
+        match kind with
+        | LIT_String -> String.length chars
+        | LIT_WString -> len
+      in
+      { untyped with
+        e_type = Tcheck.string_type len kind chars;
+        e_cval = Const_eval.make_string kind chars;
+      }
 
-          let lhs, rhs, exprtype, exprval =
-            if Operator.is_assignment op then check_assignment op lhs rhs
-            else if Operator.is_arithmetic op then check_arithmetic op lhs rhs
-            else die (Expression_error ("unhandled binary operator", None, [untyped]))
-          in
+  | BinaryExpression (op, lhs, rhs) ->
+      let lhs = resolve_type lhs in
+      let rhs = resolve_type rhs in
 
-          TypedExpression (exprtype, exprval,
-                           { untyped with
-                             e = BinaryExpression (op, lhs, rhs) })
+      let lhs, rhs, exprtype, exprval =
+        if Operator.is_assignment op then check_assignment op lhs rhs
+        else if Operator.is_arithmetic op then check_arithmetic op lhs rhs
+        else die (Expression_error ("unhandled binary operator", None, [untyped]))
+      in
 
-      | Cast (ty, expr) ->
-          TypedExpression (ty, value_of expr, untyped)
+      { untyped with
+        e = BinaryExpression (op, lhs, rhs);
+        e_type = exprtype;
+        e_cval = exprval;
+      }
 
-      | SizeofExpr (expr) ->
-          TypedExpression (Platform.size_t,
-                           Constant.of_int (Type.sizeof (type_of expr)),
-                           untyped)
+  | Cast (ty, expr) ->
+      { untyped with
+        e_type = ty;
+        e_cval = expr.e_cval;
+      }
 
-      | SizeofType (ty) ->
-          TypedExpression (Platform.size_t,
-                           Constant.of_int (Type.sizeof ty),
-                           untyped)
+  | SizeofExpr (expr) ->
+      { untyped with
+        e_type = Platform.size_t;
+        e_cval = Constant.of_int (Type.sizeof expr.e_type);
+      }
 
-      | AlignofExpr (expr) ->
-          TypedExpression (Platform.size_t,
-                           Constant.of_int (Type.alignof (type_of expr)),
-                           untyped)
+  | SizeofType (ty) ->
+      { untyped with
+        e_type = Platform.size_t;
+        e_cval = Constant.of_int (Type.sizeof ty);
+      }
 
-      | AlignofType (ty) ->
-          TypedExpression (Platform.size_t,
-                           Constant.of_int (Type.alignof ty),
-                           untyped)
+  | AlignofExpr (expr) ->
+      { untyped with
+        e_type = Platform.size_t;
+        e_cval = Constant.of_int (Type.alignof expr.e_type);
+      }
 
-      | ArrayAccess (expr, index) ->
-          let expr = Conversions.unary expr in
-          TypedExpression (Type.pointer_base (type_of expr),
-                           Constant.NonConst,
-                           { untyped with
-                             e = ArrayAccess (expr, index) })
+  | AlignofType (ty) ->
+      { untyped with
+        e_type = Platform.size_t;
+        e_cval = Constant.of_int (Type.alignof ty);
+      }
 
-      | InitialiserList _ as n -> n
+  | ArrayAccess (expr, index) ->
+      let expr = Conversions.unary expr in
+      { untyped with
+        e = ArrayAccess (expr, index);
+        e_type = Type.pointer_base expr.e_type;
+        e_cval = Constant.NonConst;
+      }
 
-      | Identifier (id) ->
-          let sym =
-            try
-              Csymtab.lookup_decl id Symtab.Ordinary
-            with Not_found ->
-              die (Expression_error ("identifier '" ^ id ^ "' not declared in this scope",
-                                     Some "6.2.1p2", [untyped]))
-          in
-          let ty, value =
-            match sym.d with
-            | Enumerator (_, Some { e = TypedExpression (ty, value, _) }) ->
-                ty, value
-            | _ ->
-                Decls.decl_type sym, Constant.NonConst
-          in
-          TypedExpression (ty, value, untyped)
+  | InitialiserList _ -> untyped
 
-      | _ -> die (Expression_error ("unhandled expression in type check", None,
-                                    [untyped]))
-  }
+  | Identifier (id) ->
+      let sym =
+        try
+          Csymtab.lookup_decl id Symtab.Ordinary
+        with Not_found ->
+          die (Expression_error ("identifier '" ^ id ^ "' not declared in this scope",
+                                 Some "6.2.1p2", [untyped]))
+      in
+      let ty, value =
+        match sym.d with
+        | Enumerator (_, Some { e_type = ty; e_cval = value }) ->
+            ty, value
+        | _ ->
+            Decls.decl_type sym, Constant.NonConst
+      in
+      { untyped with
+        e_type = ty;
+        e_cval = value;
+      }
+
+  | _ -> die (Expression_error ("unhandled expression in type check", None,
+                                [untyped]))
 
 (* }}} *)
 (* {{{ tcheck_type *)
@@ -450,7 +460,7 @@ and tcheck_type env untyped =
                  },
                  name)
             | Enumerator (name, Some value) ->
-                (succ_mach_int (Constant.to_mach_int (value_of value)),
+                (succ_mach_int (Constant.to_mach_int value.e_cval),
                  enum,
                  name)
             | _ -> die (Declaration_error (

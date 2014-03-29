@@ -201,7 +201,7 @@ and asm_argument =
   | AsmArgument of (*constraint*)string list * (*expr*)expr
 
 and stmt = {
-  s : stmt_;
+  s      : stmt_;
   s_sloc : Location.t;
 }
 
@@ -242,14 +242,14 @@ and stmt_ =
 (** {6 Expressions} *)
 
 and expr = {
-  e : expr_;
+  e      : expr_;
   e_sloc : Location.t;
+  e_type : ctyp;
+  e_cval : Constant.t;
 }
 
 and expr_ =
   | WildcardExpr of string
-
-  | TypedExpression of (*ty*)ctyp * (*value*)Constant.t * (*expr*)expr
 
   | TernaryExpression of ternary_operator * (*cond*)expr * (*then*)expr option * (*else*)expr
   | BinaryExpression of binary_operator * (*lhs*)expr * (*rhs*)expr
@@ -292,7 +292,7 @@ and desg = {
 (** {6 Types} *)
 
 and ctyp = {
-  t : ctyp_;
+  t      : ctyp_;
   t_sloc : Location.t;
 }
 
@@ -318,7 +318,7 @@ and ctyp_ =
 (** {6 Declarations} *)
 
 and decl = {
-  d : decl_;
+  d      : decl_;
   d_sloc : Location.t;
 }
 

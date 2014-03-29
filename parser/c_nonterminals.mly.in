@@ -7,7 +7,7 @@ open Tqual
 let desg dg_sloc dg = { dg; dg_sloc; }
 let decl  d_sloc  d = {  d;  d_sloc; }
 let stmt  s_sloc  s = {  s;  s_sloc; }
-let expr  e_sloc  e = {  e;  e_sloc; }
+let expr  e_sloc  e = {  e;  e_sloc; e_type = { t = EmptyType; t_sloc = e_sloc; }; e_cval = Constant.NonConst; }
 let ctyp  t_sloc  t = {  t;  t_sloc; }
 
 #define mkdesg	desg ($startpos, $endpos)

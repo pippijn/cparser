@@ -10,22 +10,6 @@ open Tqual
  ****************************************************************************)
 
 
-let value_of expr =
-  match expr.e with
-  | TypedExpression (_, value, _) ->
-      value
-  | _ -> die (Expression_error ("untyped expression has no value", None, [expr]))
-
-
-let type_of expr =
-  match expr.e with
-  | TypedExpression (ty, _, _) ->
-      ty
-  | _ -> die (Expression_error ("untyped expression has no type", None, [expr]))
-
-
-
-
 let is_integral_basic_type = function
   | Bool
   | Char
@@ -159,7 +143,7 @@ let rec alignof ty =
 let rec sizeof ty =
   match ty.t with
   | ArrayType (Some arity, base) ->
-      Constant.to_int (value_of arity) * sizeof base
+      Constant.to_int arity.e_cval * sizeof base
 
   | BasicType bt ->
       begin match bt with
@@ -246,7 +230,7 @@ let rec sizeof ty =
 
 let rec resolve ty =
   match ty.t with
-  | TypeofExpr (expr) -> resolve (type_of expr)
+  | TypeofExpr (expr) -> resolve expr.e_type
   | TypeofType (ty) -> resolve ty
   | BasicType _ -> ty
   | ArrayType (arity, base) ->
@@ -303,10 +287,10 @@ let rec is_lvalue_ty modifiablep ty =
 
 
 let rec is_lvalue modifiablep expr =
-  match expr.e with
   (* test first for modifiability, if required by caller *)
-  | TypedExpression (ty, _, expr) -> is_lvalue_ty modifiablep ty && is_lvalue modifiablep expr
+  is_lvalue_ty modifiablep expr.e_type &&
 
+  match expr.e with
   (* *p is an lvalue. *)
   | UnaryExpression (OP_Dereference, _)
   (* a[i] is *(a + i), thus an lvalue. *)
@@ -415,7 +399,7 @@ let rec equal_qualified strict_toplevel strict_recursive ty1 ty2 =
 
   | ty, TypeofExpr expr
   | TypeofExpr expr, ty ->
-      equal (type_of expr).t ty
+      equal expr.e_type.t ty
 
   | ty, TypeofType tty
   | TypeofType tty, ty ->

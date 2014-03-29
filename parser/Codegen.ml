@@ -281,10 +281,6 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
     let output_end_pos = lazy (pl false (snd pos)) in
 
     let rec printer = function
-      (* Expression type information is ignored in code generation *)
-      | TypedExpression (_, _, expr) ->
-          printer expr.e
-
       | TernaryExpression (op, cond, then_expr, else_expr) ->
           let ternop = TernaryOperator op in
           ternop, fun () ->

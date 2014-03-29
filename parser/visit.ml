@@ -58,9 +58,6 @@ let iter_expr { iter_type; iter_expr; iter_stmt; iter_decl } node =
   (* Wildcards *)
   | WildcardExpr _ -> ()
 
-  (* Expression with type information *)
-  | TypedExpression (ty, value, expr) -> iter_type ty; iter_expr expr
-
   (* Expression *)
   | TernaryExpression (op, cond, then_expr, else_expr) -> iter_expr cond; opt iter_expr then_expr; iter_expr else_expr
   | BinaryExpression (op, lhs, rhs) -> iter_expr lhs; iter_expr rhs
@@ -204,8 +201,6 @@ let map_expr { map_type; map_expr; map_stmt; map_decl } node =
     e =
       match node.e with
       | WildcardExpr _ as node -> node
-
-      | TypedExpression (ty, value, expr) -> TypedExpression (map_type ty, value, map_expr expr)
 
       | TernaryExpression (op, cond, then_expr, else_expr) -> TernaryExpression (op, map_expr cond, opt map_expr then_expr, map_expr else_expr)
       | BinaryExpression (op, lhs, rhs) -> BinaryExpression (op, map_expr lhs, map_expr rhs)
@@ -357,10 +352,6 @@ let fold_expr { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   match node.e with
   (* Wildcards *)
   | WildcardExpr _ -> data
-
-  (* Expression with type information *)
-  | TypedExpression (ty, value, expr) ->
-      data |> (fold_type, ty) |> (fold_expr, expr)
 
   (* Expression *)
   | TernaryExpression (op, cond, then_expr, else_expr) ->
