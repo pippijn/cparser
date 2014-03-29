@@ -6,49 +6,6 @@ let opt = Option.map
 
 
 (* {{{ *)
-let traits_of_expr = function
-  (* Wildcards *)
-  | WildcardExpr (trs, _)
-
-  (* Expression *)
-  | TernaryExpression (trs, _, _, _, _)
-  | BinaryExpression (trs, _, _, _)
-  | UnaryExpression (trs, _, _)
-  | FunctionCall (trs, _, _)
-  | ArrayAccess (trs, _, _)
-  | MemberAccess (trs, _, _)
-  | PointerAccess (trs, _, _)
-  | SizeofExpr (trs, _)
-  | SizeofType (trs, _)
-  | AlignofExpr (trs, _)
-  | AlignofType (trs, _)
-  | Offsetof (trs, _, _)
-  | TypesCompatibleP (trs, _, _)
-  | VaArg (trs, _, _)
-
-  (* Primary expression *)
-  | Identifier (trs, _)
-  | IntegerLiteral (trs, _, _, _)
-  | FloatingLiteral (trs, _, _, _)
-  | CharLiteral (trs, _, _)
-  | StringLiteral (trs, _, _)
-  | BraceExpression (trs, _)
-
-  (* Cast expression *)
-  | CompoundLiteral (trs, _, _)
-  | Cast (trs, _, _)
-
-  (* Initialisers *)
-  | ArrayLabelledInitialiser (trs, _, _)
-  | DesignatedInitialiser (trs, _, _)
-  | InitialiserList (trs, _) -> trs
-
-  (* Expression with type information *)
-  | TypedExpression _
-
-  | MemberDesignator _ -> empty_position
-
-
 let traits_of_type = function
   | EmptyType -> empty_position
 
@@ -119,13 +76,6 @@ let set_pos_decl pos = function
   | TypedDecl (trs, sclasses, ty, untyped, asm, init) ->
       TypedDecl (Attributes.set_position pos trs, sclasses, ty, untyped, asm, init)
   | node -> node
-
-
-let pos_of_expr expr =
-  try
-    Attributes.position (traits_of_expr expr)
-  with Option.No_value ->
-    die (Expression_error ("no position", None, [expr]))
 
 
 let pos_of_type ty =

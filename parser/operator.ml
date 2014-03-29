@@ -90,12 +90,13 @@ let lowest = PseudoOperator OP_LowestPrecedence
 let highest = PseudoOperator OP_HighestPrecedence
 
 
-let rec wrap = function
-  | TypedExpression (_, _, expr) -> wrap expr
+let rec wrap expr =
+  match expr.e with
+  | TypedExpression (_, _, expr) -> wrap expr 
 
-  | TernaryExpression (_, op, _, _, _) -> TernaryOperator op
-  | BinaryExpression (_, op, _, _) -> BinaryOperator op
-  | UnaryExpression (_, op, _) -> UnaryOperator op
+  | TernaryExpression (op, _, _, _) -> TernaryOperator op
+  | BinaryExpression (op, _, _) -> BinaryOperator op
+  | UnaryExpression (op, _) -> UnaryOperator op
   | SizeofExpr _
   | SizeofType _ -> PseudoOperator OP_Sizeof
   | AlignofExpr _
@@ -108,7 +109,6 @@ let rec wrap = function
 
   (* Initialisers *)
   | InitialiserList _
-  | MemberDesignator _
 
   | Identifier _
   | IntegerLiteral _

@@ -88,13 +88,17 @@ let eval_arithmetic op lhs rhs =
 
 
 let make_int value =
-  TypedExpression (
-    BasicType SInt,
-    IntValue value,
-    IntegerLiteral (Traits.empty_position, LIT_Dec, string_of_mach_int value, None)
-  )
+  { e = TypedExpression (
+       BasicType SInt,
+       IntValue value,
+       { e = IntegerLiteral (LIT_Dec, string_of_mach_int value, None);
+         e_sloc = Location.dummy;
+       }
+     );
+    e_sloc = Location.dummy;
+  }
 
 
 let is_zero = function
-  | TypedExpression (_, IntValue value, _) -> value = zero_mach_int
+  | { e = TypedExpression (_, IntValue value, _) } -> value = zero_mach_int
   | _ -> false

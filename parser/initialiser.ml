@@ -2,7 +2,8 @@ open Ast
 open CorePervasives
 
 
-let rec is_link_time_constant = function
+let rec is_link_time_constant expr =
+  match expr.e with
   | TypedExpression (ty, Constant.NonConst, expr) ->
       is_link_time_constant expr
 
@@ -10,28 +11,30 @@ let rec is_link_time_constant = function
   | TypedExpression _ -> true
 
   (* Check for pointer arithmetic involving constant addresses. *)
-  | BinaryExpression (_, (OP_Add | OP_Subtract), lhs, rhs) ->
+  | BinaryExpression ((OP_Add | OP_Subtract), lhs, rhs) ->
       is_link_time_constant lhs && is_link_time_constant rhs
 
-  | expr -> die (Expression_error ("invalid constant", None, [expr]))
+  | _ -> die (Expression_error ("invalid constant", None, [expr]))
 
 
-let rec require_constant_initialiser = function
-  | InitialiserList (_, inits) ->
+let rec require_constant_initialiser expr =
+  match expr.e with
+  | InitialiserList (inits) ->
       List.iter require_constant_initialiser inits
 
-  | TypedExpression _ as expr ->
+  | TypedExpression _ ->
       if not (is_link_time_constant expr) then
         die (Expression_error ("initialiser must be constant", Some "6.7.8p4", [expr]))
 
-  | init -> die (Expression_error ("invalid constant initialiser", None, [init]))
+  | _ -> die (Expression_error ("invalid constant initialiser", None, [expr]))
 
 
-let rec is_initialiser = function
+let rec is_initialiser expr =
+  match expr.e with
   | TypedExpression (_, _, expr) -> is_initialiser expr
   | InitialiserList _ -> true
   | IntegerLiteral _ -> false
-  | init -> die (Expression_error ("is_initialiser", None, [init]))
+  | _ -> die (Expression_error ("is_initialiser", None, [expr]))
 
 
 let ensure_initialiser_expr init decl =
@@ -64,10 +67,10 @@ let sue_match_init_list =
     Printf.printf "sue:\n";
     List.iter Printing.print_decl fields;
 
-    match initialiser with
-    | InitialiserList (_, inits) ->
+    match initialiser.e with
+    | InitialiserList (inits) ->
         match_lists (inits, fields)
-    | init -> die (Expression_error ("sue_match_init_list", None, [init]))
+    | _ -> die (Expression_error ("sue_match_init_list", None, [initialiser]))
 
 
 (*
@@ -80,10 +83,10 @@ let sue_match_init_list =
  *)
 let check_init_list decl dtype init toplevel =
   if Type.is_scalar dtype then
-    match init with
+    match init.e with
     | TypedExpression (_, _, expr) ->
         ignore (Conversions.assignment init dtype)
-    | init -> die (Expression_error ("is_initialiser", None, [init]))
+    | _ -> die (Expression_error ("is_initialiser", None, [init]))
   else if Type.is_array dtype then
     die (Type_error ("unimplemented array", None, [dtype]))
   else if Type.is_struct dtype then

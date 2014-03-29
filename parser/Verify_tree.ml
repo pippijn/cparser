@@ -144,85 +144,87 @@ and verify_stmt stmt =
   | _ -> bad_stmt "verify_stmt" stmt
 
 
-
-and verify_expr = function
+and verify_expr expr =
+  match expr.e with
   | TypedExpression (ty, value, expr) -> verify_type ty @ verify_expr expr
 
-  | WildcardExpr (_, "") as node -> bad_expr "empty wildcard" node
-  | WildcardExpr (_, _) -> []
+  | WildcardExpr ("") -> bad_expr "empty wildcard" expr
+  | WildcardExpr _ -> []
 
-  | Identifier (_, "") as node -> bad_expr "empty identifier" node
-  | Identifier (_, _) -> []
+  | Identifier ("") -> bad_expr "empty identifier" expr
+  | Identifier (_) -> []
 
-  | IntegerLiteral (_, _, "", _)
-  | FloatingLiteral (_, _, "", _) as node -> bad_expr "empty literal" node
-  | IntegerLiteral (_, _, _, Some "") as node -> bad_expr "empty suffix on literal" node
-  | FloatingLiteral (_, _, _, Some "") as node -> bad_expr "empty suffix on literal" node
-  | IntegerLiteral (_, _, _, _) -> []
-  | FloatingLiteral (_, _, _, _) -> []
+  | IntegerLiteral (_, "", _)
+  | FloatingLiteral (_, "", _) -> bad_expr "empty literal" expr
+  | IntegerLiteral (_, _, Some "") -> bad_expr "empty suffix on literal" expr
+  | FloatingLiteral (_, _, Some "") -> bad_expr "empty suffix on literal" expr
+  | IntegerLiteral (_, _, _) -> []
+  | FloatingLiteral (_, _, _) -> []
 
-  | CharLiteral (_, kind, "") as node -> bad_expr "empty char literal" node
-  | CharLiteral (_, kind, _) -> []
+  | CharLiteral (kind, "") -> bad_expr "empty char literal" expr
+  | CharLiteral (kind, _) -> []
 
-  | StringLiteral (_, kind, strs) as node ->
-      forall (function "" -> bad_expr "empty string literal" node | _ -> []) strs
+  | StringLiteral (kind, strs) ->
+      forall (function "" -> bad_expr "empty string literal" expr | _ -> []) strs
 
-  | InitialiserList (_, inits) ->
+  | InitialiserList (inits) ->
       forall verify_expr inits
-  | MemberDesignator (members) as node ->
-      forall (function "" -> bad_expr "empty designator" node | _ -> []) members
 
-  | TernaryExpression (_, _, cond, then_expr, else_expr) ->
+  | TernaryExpression (_, cond, then_expr, else_expr) ->
       verify_expr cond @
       opt verify_expr then_expr @
       verify_expr else_expr
-  | ArrayLabelledInitialiser (_, left, right)
-  | DesignatedInitialiser (_, left, right)
-  | BinaryExpression (_, _, left, right) ->
+  | DesignatedInitialiser (members, init) ->
+      forall
+        (function "" -> bad_expr "empty designator" expr | _ -> [])
+        members.dg
+      @ verify_expr init
+  | ArrayLabelledInitialiser (left, right)
+  | BinaryExpression (_, left, right) ->
       forall verify_expr [left; right]
-  | UnaryExpression (_, _, expr) ->
+  | UnaryExpression (_, expr) ->
       verify_expr expr
 
-  | CompoundLiteral (_, ty, init) ->
+  | CompoundLiteral (ty, init) ->
       verify_type ty @
       verify_expr init
 
-  | BraceExpression (_, stmt) ->
+  | BraceExpression (stmt) ->
       verify_stmt stmt
 
-  | ArrayAccess (_, expr, index) ->
+  | ArrayAccess (expr, index) ->
       verify_expr expr @
       verify_expr index
 
-  | PointerAccess (_, expr, member)
-  | MemberAccess (_, expr, member) ->
+  | PointerAccess (expr, member)
+  | MemberAccess (expr, member) ->
       verify_expr expr
 
-  | AlignofType (_, ty)
-  | SizeofType (_, ty) ->
+  | AlignofType (ty)
+  | SizeofType (ty) ->
       verify_type ty
 
-  | AlignofExpr (_, expr)
-  | SizeofExpr (_, expr) ->
+  | AlignofExpr (expr)
+  | SizeofExpr (expr) ->
       verify_expr expr
 
-  | Cast (_, ty, expr) ->
+  | Cast (ty, expr) ->
       verify_type ty @
       verify_expr expr
 
-  | FunctionCall (_, callee, args) ->
+  | FunctionCall (callee, args) ->
       verify_expr callee @
       forall verify_expr args
 
-  | Offsetof (_, ty, member) ->
+  | Offsetof (ty, member) ->
       verify_type ty @
       verify_expr member
 
-  | VaArg (_, expr, ty) ->
+  | VaArg (expr, ty) ->
       verify_expr expr @
       verify_type ty
 
-  | TypesCompatibleP (_, ty1, ty2) ->
+  | TypesCompatibleP (ty1, ty2) ->
       verify_type ty1 @
       verify_type ty2
 

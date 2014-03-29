@@ -14,10 +14,12 @@ let type_of = Type.type_of
 
 (* {{{ resolve_type *)
 
-let resolve_type = function
+let resolve_type expr =
+  match expr.e with
   | TypedExpression (ty, value, expr) ->
-      TypedExpression (Type.resolve ty, value, expr)
-  | expr -> die (Expression_error (",,", None, [expr]))
+      { expr with
+        e = TypedExpression (Type.resolve ty, value, expr) }
+  | _ -> die (Expression_error (",,", None, [expr]))
 
 (* }}} *)
 (* {{{ check_assignment *)
@@ -330,70 +332,95 @@ and tcheck_stmt env stmt =
 (* {{{ tcheck_expr *)
 
 and tcheck_expr env untyped =
-  match Visit.map_expr (tcheck_struct env) untyped with
-  | FloatingLiteral (_, kind, str, suffix) as lit ->
-      TypedExpression (Tcheck.float_type suffix, Const_eval.parse_float kind str, lit)
+  let untyped = Visit.map_expr (tcheck_struct env) untyped in
+  { untyped with
+    e =
+      match untyped.e with
+      | FloatingLiteral (kind, str, suffix) ->
+          TypedExpression (Tcheck.float_type suffix,
+                           Const_eval.parse_float kind str,
+                           untyped)
 
-  | IntegerLiteral (_, kind, str, suffix) as lit ->
-      TypedExpression (Tcheck.int_type suffix, Const_eval.parse_int kind str, lit)
+      | IntegerLiteral (kind, str, suffix) ->
+          TypedExpression (Tcheck.int_type suffix,
+                           Const_eval.parse_int kind str,
+                           untyped)
 
-  | StringLiteral (_, kind, strlist) as lit ->
-      let len, chars = Const_eval.parse_string_literal strlist in
-      let len =
-        match kind with
-        | LIT_String -> String.length chars
-        | LIT_WString -> len
-      in
-      TypedExpression (Tcheck.string_type len kind chars, Const_eval.make_string kind chars, lit)
+      | StringLiteral (kind, strlist) ->
+          let len, chars = Const_eval.parse_string_literal strlist in
+          let len =
+            match kind with
+            | LIT_String -> String.length chars
+            | LIT_WString -> len
+          in
+          TypedExpression (Tcheck.string_type len kind chars,
+                           Const_eval.make_string kind chars, untyped)
 
-  | BinaryExpression (trs, op, lhs, rhs) as expr ->
-      let lhs = resolve_type lhs in
-      let rhs = resolve_type rhs in
+      | BinaryExpression (op, lhs, rhs) ->
+          let lhs = resolve_type lhs in
+          let rhs = resolve_type rhs in
 
-      let lhs, rhs, exprtype, exprval =
-        if Operator.is_assignment op then check_assignment op lhs rhs
-        else if Operator.is_arithmetic op then check_arithmetic op lhs rhs
-        else die (Expression_error ("unhandled binary operator", None, [expr]))
-      in
+          let lhs, rhs, exprtype, exprval =
+            if Operator.is_assignment op then check_assignment op lhs rhs
+            else if Operator.is_arithmetic op then check_arithmetic op lhs rhs
+            else die (Expression_error ("unhandled binary operator", None, [untyped]))
+          in
 
-      TypedExpression (exprtype, exprval, BinaryExpression (trs, op, lhs, rhs))
+          TypedExpression (exprtype, exprval,
+                           { untyped with
+                             e = BinaryExpression (op, lhs, rhs) })
 
-  | Cast (_, ty, expr) as cast ->
-      TypedExpression (ty, value_of expr, cast)
+      | Cast (ty, expr) ->
+          TypedExpression (ty, value_of expr, untyped)
 
-  | SizeofExpr (_, expr) as sizeof ->
-      TypedExpression (Platform.size_t, Constant.of_int (Type.sizeof (type_of expr)), sizeof)
+      | SizeofExpr (expr) ->
+          TypedExpression (Platform.size_t,
+                           Constant.of_int (Type.sizeof (type_of expr)),
+                           untyped)
 
-  | SizeofType (_, ty) as sizeof ->
-      TypedExpression (Platform.size_t, Constant.of_int (Type.sizeof ty), sizeof)
+      | SizeofType (ty) ->
+          TypedExpression (Platform.size_t,
+                           Constant.of_int (Type.sizeof ty),
+                           untyped)
 
-  | AlignofExpr (_, expr) as alignof ->
-      TypedExpression (Platform.size_t, Constant.of_int (Type.alignof (type_of expr)), alignof)
+      | AlignofExpr (expr) ->
+          TypedExpression (Platform.size_t,
+                           Constant.of_int (Type.alignof (type_of expr)),
+                           untyped)
 
-  | AlignofType (_, ty) as alignof ->
-      TypedExpression (Platform.size_t, Constant.of_int (Type.alignof ty), alignof)
+      | AlignofType (ty) ->
+          TypedExpression (Platform.size_t,
+                           Constant.of_int (Type.alignof ty),
+                           untyped)
 
-  | ArrayAccess (trs, expr, index) ->
-      let expr = Conversions.unary expr in
-      TypedExpression (Type.pointer_base (type_of expr), Constant.NonConst, ArrayAccess (trs, expr, index))
+      | ArrayAccess (expr, index) ->
+          let expr = Conversions.unary expr in
+          TypedExpression (Type.pointer_base (type_of expr),
+                           Constant.NonConst,
+                           { untyped with
+                             e = ArrayAccess (expr, index) })
 
-  | InitialiserList _ as n -> n
+      | InitialiserList _ as n -> n
 
-  | Identifier (_, id) as n ->
-      let sym =
-        try
-          Csymtab.lookup_decl id Symtab.Ordinary
-        with Not_found ->
-          die (Expression_error ("identifier '" ^ id ^ "' not declared in this scope", Some "6.2.1p2", [n]))
-      in
-      let ty, value =
-        match sym with
-        | Enumerator (_, _, Some (TypedExpression (ty, value, _))) -> ty, value
-        | decl -> Decls.decl_type decl, Constant.NonConst
-      in
-      TypedExpression (ty, value, n)
+      | Identifier (id) ->
+          let sym =
+            try
+              Csymtab.lookup_decl id Symtab.Ordinary
+            with Not_found ->
+              die (Expression_error ("identifier '" ^ id ^ "' not declared in this scope",
+                                     Some "6.2.1p2", [untyped]))
+          in
+          let ty, value =
+            match sym with
+            | Enumerator (_, _, Some { e = TypedExpression (ty, value, _) }) ->
+                ty, value
+            | decl -> Decls.decl_type decl, Constant.NonConst
+          in
+          TypedExpression (ty, value, untyped)
 
-  | n -> die (Expression_error ("unhandled expression in type check", None, [n]))
+      | _ -> die (Expression_error ("unhandled expression in type check", None,
+                                    [untyped]))
+  }
 
 (* }}} *)
 (* {{{ tcheck_type *)
@@ -406,7 +433,9 @@ and tcheck_type env untyped =
           let value, enum, name =
             match enum with
             | Enumerator (trs, name, None) ->
-                succ_mach_int value, Enumerator (trs, name, Some (Const_eval.make_int value)), name
+                (succ_mach_int value,
+                 Enumerator (trs, name, Some (Const_eval.make_int value)),
+                 name)
             | Enumerator (_, name, Some value) as enum ->
                 succ_mach_int (Constant.to_mach_int (value_of value)), enum, name
             | decl -> die (Declaration_error ("invalid declaration in enum", None, [decl]))

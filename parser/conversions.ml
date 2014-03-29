@@ -34,32 +34,35 @@ let type_assignable_modulo_cv ltype rtype =
 
 
 
-let unary a =
-  match a with
-  | TypedExpression (ty, value, expr) ->
-      let ty =
-        match ty with
-        (* Convert char and short to int, keeping their signedness. *)
-        | BasicType (SChar | SShort) -> BasicType SInt
-        | BasicType (UChar | UShort) -> BasicType UInt
-        | BasicType Char ->
-            if Platform.char_is_signed then
-              BasicType SInt
-            else
-              BasicType UInt
-        (* Convert arrays to pointers. *)
-        | ArrayType (_, base) -> PointerType (base)
-        (* Convert functions to pointers to functions. *)
-        | FunctionType _ as ty -> PointerType (ty)
-        | ty -> ty
-      in
+let unary expr =
+  { expr with
+    e =
+      match expr.e with
+      | TypedExpression (ty, value, expr) ->
+          let ty =
+            match ty with
+            (* Convert char and short to int, keeping their signedness. *)
+            | BasicType (SChar | SShort) -> BasicType SInt
+            | BasicType (UChar | UShort) -> BasicType UInt
+            | BasicType Char ->
+                if Platform.char_is_signed then
+                  BasicType SInt
+                else
+                  BasicType UInt
+            (* Convert arrays to pointers. *)
+            | ArrayType (_, base) -> PointerType (base)
+            (* Convert functions to pointers to functions. *)
+            | FunctionType _ as ty -> PointerType (ty)
+            | ty -> ty
+          in
 
-      TypedExpression (ty, value, expr)
-  | expr -> die (Expression_error ("usual unary conversions", None, [expr]))
+          TypedExpression (ty, value, expr)
+      | _ -> die (Expression_error ("usual unary conversions", None, [expr]))
+  }
 
 
 let binary a b =
-  match a, b with
+  match a.e, b.e with
   | TypedExpression (lty, lvalue, lexpr), TypedExpression (rty, rvalue, rexpr) ->
       let rank bt =
         match bt with
@@ -75,7 +78,8 @@ let binary a b =
         | bt		-> die (Type_error ("invalid basic type", None, [BasicType bt]))
       in
 
-      let convert to_ty = function
+      let convert to_ty expr =
+        match expr.e with
         | TypedExpression (from_ty, evalue, expr) ->
             (* Convert value to floating point, if the target type is a
              * floating point type. *)
@@ -91,7 +95,7 @@ let binary a b =
             in
 
             TypedExpression (to_ty, value, expr)
-        | expr ->
+        | _ ->
             die (Expression_error ("untyped expression in implicit conversion", None, [expr]))
       in
 
@@ -103,9 +107,9 @@ let binary a b =
       | BasicType lbt, BasicType rbt ->
           begin match rank lbt < rank rbt with
           | true  -> (* Convert left expression to right type. *)
-              convert rty a, b
+              { a with e = convert rty a }, b
           | false -> (* Convert right expression to left type. *)
-              a, convert lty b
+              a, { b with e = convert lty b }
           end
 
       (* Complex types undergo no conversions. *)
@@ -113,7 +117,7 @@ let binary a b =
           a, b
       end
 
-  | a, b -> die (Expression_error ("usual binary conversions", None, [a]))
+  | _ -> die (Expression_error ("usual binary conversions", None, [a; b]))
 
 
 (**

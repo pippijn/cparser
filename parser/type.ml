@@ -10,16 +10,18 @@ open Tqual
  ****************************************************************************)
 
 
-let value_of = function
+let value_of expr =
+  match expr.e with
   | TypedExpression (_, value, _) ->
       value
-  | expr -> die (Expression_error ("untyped expression has no value", None, [expr]))
+  | _ -> die (Expression_error ("untyped expression has no value", None, [expr]))
 
 
-let type_of = function
+let type_of expr =
+  match expr.e with
   | TypedExpression (ty, _, _) ->
       ty
-  | expr -> die (Expression_error ("untyped expression has no type", None, [expr]))
+  | _ -> die (Expression_error ("untyped expression has no type", None, [expr]))
 
 
 
@@ -288,12 +290,13 @@ let rec is_lvalue_ty modifiablep = function
   | ty -> die (Type_error ("unhandled type in is_lvalue_ty", None, [ty]))
 
 
-let rec is_lvalue modifiablep = function
+let rec is_lvalue modifiablep expr =
+  match expr.e with
   (* test first for modifiability, if required by caller *)
   | TypedExpression (ty, _, expr) -> is_lvalue_ty modifiablep ty && is_lvalue modifiablep expr
 
   (* *p is an lvalue. *)
-  | UnaryExpression (_, OP_Dereference, _)
+  | UnaryExpression (OP_Dereference, _)
   (* a[i] is *(a + i), thus an lvalue. *)
   | ArrayAccess _
   (* Whether the identifier is an lvalue is known from its type. *)
@@ -302,7 +305,7 @@ let rec is_lvalue modifiablep = function
   | IntegerLiteral _
   | FloatingLiteral _ -> false
 
-  | decl -> die (Expression_error ("unhandled in is_lvalue", None, [decl]))
+  | _ -> die (Expression_error ("unhandled in is_lvalue", None, [expr]))
   (*| QualifiedType (tqs, _) when modifiablep && List.mem TQ_Const tqs ->*)
       (*false*)
 

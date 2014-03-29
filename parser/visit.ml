@@ -54,7 +54,7 @@ let iter_stmt { iter_type; iter_expr; iter_stmt; iter_decl } node =
 
 
 let iter_expr { iter_type; iter_expr; iter_stmt; iter_decl } node =
-  match node with
+  match node.e with
   (* Wildcards *)
   | WildcardExpr _ -> ()
 
@@ -62,21 +62,21 @@ let iter_expr { iter_type; iter_expr; iter_stmt; iter_decl } node =
   | TypedExpression (ty, value, expr) -> iter_type ty; iter_expr expr
 
   (* Expression *)
-  | TernaryExpression (_, op, cond, then_expr, else_expr) -> iter_expr cond; opt iter_expr then_expr; iter_expr else_expr
-  | BinaryExpression (_, op, lhs, rhs) -> iter_expr lhs; iter_expr rhs
-  | UnaryExpression (_, op, expr) -> iter_expr expr
-  | ArrayAccess (_, expr, index) -> iter_expr expr; iter_expr index
-  | MemberAccess (_, expr, member) -> iter_expr expr
-  | PointerAccess (_, expr, member) -> iter_expr expr
-  | SizeofExpr (_, expr) -> iter_expr expr
-  | SizeofType (_, ty) -> iter_type ty
-  | AlignofExpr (_, expr) -> iter_expr expr
-  | AlignofType (_, ty) -> iter_type ty
-  | Offsetof (_, ty, member) -> iter_type ty; iter_expr member
-  | TypesCompatibleP (_, ty1, ty2) -> iter_type ty1; iter_type ty2
-  | VaArg (_, ap, ty) -> iter_expr ap; iter_type ty
-  | FunctionCall (_, callee, args) -> iter_expr callee; iter iter_expr args
-  | CompoundLiteral (_, ty, init) -> iter_type ty; iter_expr init
+  | TernaryExpression (op, cond, then_expr, else_expr) -> iter_expr cond; opt iter_expr then_expr; iter_expr else_expr
+  | BinaryExpression (op, lhs, rhs) -> iter_expr lhs; iter_expr rhs
+  | UnaryExpression (op, expr) -> iter_expr expr
+  | ArrayAccess (expr, index) -> iter_expr expr; iter_expr index
+  | MemberAccess (expr, member) -> iter_expr expr
+  | PointerAccess (expr, member) -> iter_expr expr
+  | SizeofExpr (expr) -> iter_expr expr
+  | SizeofType (ty) -> iter_type ty
+  | AlignofExpr (expr) -> iter_expr expr
+  | AlignofType (ty) -> iter_type ty
+  | Offsetof (ty, member) -> iter_type ty; iter_expr member
+  | TypesCompatibleP (ty1, ty2) -> iter_type ty1; iter_type ty2
+  | VaArg (ap, ty) -> iter_expr ap; iter_type ty
+  | FunctionCall (callee, args) -> iter_expr callee; iter iter_expr args
+  | CompoundLiteral (ty, init) -> iter_type ty; iter_expr init
 
   (* Primary expression *)
   | Identifier _
@@ -84,16 +84,15 @@ let iter_expr { iter_type; iter_expr; iter_stmt; iter_decl } node =
   | FloatingLiteral _
   | CharLiteral _
   | StringLiteral _ -> ()
-  | BraceExpression (_, stmt) -> iter_stmt stmt
+  | BraceExpression (stmt) -> iter_stmt stmt
 
   (* Cast expression *)
-  | Cast (_, ty, expr) -> iter_type ty; iter_expr expr
+  | Cast (ty, expr) -> iter_type ty; iter_expr expr
 
   (* Initialisers *)
-  | InitialiserList (_, inits) -> iter iter_expr inits
-  | MemberDesignator (_) -> ()
-  | ArrayLabelledInitialiser (_, index, init) -> iter_expr index; iter_expr init
-  | DesignatedInitialiser (_, designator, init) -> iter_expr designator; iter_expr init
+  | InitialiserList (inits) -> iter iter_expr inits
+  | ArrayLabelledInitialiser (index, init) -> iter_expr index; iter_expr init
+  | DesignatedInitialiser (designator, init) -> iter_expr init
 
 
 let iter_type { iter_type; iter_expr; iter_stmt; iter_decl } node =
@@ -200,46 +199,43 @@ let map_stmt { map_type; map_expr; map_stmt; map_decl } node =
   }
 
 
-let map_expr { map_type; map_expr; map_stmt; map_decl } = function
-  (* Wildcards *)
-  | WildcardExpr _ as node -> node
+let map_expr { map_type; map_expr; map_stmt; map_decl } node =
+  { node with
+    e =
+      match node.e with
+      | WildcardExpr _ as node -> node
 
-  (* Expression with type information *)
-  | TypedExpression (ty, value, expr) -> TypedExpression (map_type ty, value, map_expr expr)
+      | TypedExpression (ty, value, expr) -> TypedExpression (map_type ty, value, map_expr expr)
 
-  (* Expression *)
-  | TernaryExpression (trs, op, cond, then_expr, else_expr) -> TernaryExpression (trs, op, map_expr cond, opt map_expr then_expr, map_expr else_expr)
-  | BinaryExpression (trs, op, lhs, rhs) -> BinaryExpression (trs, op, map_expr lhs, map_expr rhs)
-  | UnaryExpression (trs, op, expr) -> UnaryExpression (trs, op, map_expr expr)
-  | ArrayAccess (trs, expr, index) -> ArrayAccess (trs, map_expr expr, map_expr index)
-  | MemberAccess (trs, expr, member) -> MemberAccess (trs, map_expr expr, member)
-  | PointerAccess (trs, expr, member) -> PointerAccess (trs, map_expr expr, member)
-  | SizeofExpr (trs, expr) -> SizeofExpr (trs, map_expr expr)
-  | SizeofType (trs, ty) -> SizeofType (trs, map_type ty)
-  | AlignofExpr (trs, expr) -> AlignofExpr (trs, map_expr expr)
-  | AlignofType (trs, ty) -> AlignofType (trs, map_type ty)
-  | Offsetof (trs, ty, member) -> Offsetof (trs, map_type ty, map_expr member)
-  | TypesCompatibleP (trs, ty1, ty2) -> TypesCompatibleP (trs, map_type ty1, map_type ty2)
-  | VaArg (trs, ap, ty) -> VaArg (trs, map_expr ap, map_type ty)
-  | FunctionCall (trs, callee, args) -> FunctionCall (trs, map_expr callee, map map_expr args)
-  | CompoundLiteral (trs, ty, init) -> CompoundLiteral (trs, map_type ty, map_expr init)
+      | TernaryExpression (op, cond, then_expr, else_expr) -> TernaryExpression (op, map_expr cond, opt map_expr then_expr, map_expr else_expr)
+      | BinaryExpression (op, lhs, rhs) -> BinaryExpression (op, map_expr lhs, map_expr rhs)
+      | UnaryExpression (op, expr) -> UnaryExpression (op, map_expr expr)
+      | ArrayAccess (expr, index) -> ArrayAccess (map_expr expr, map_expr index)
+      | MemberAccess (expr, member) -> MemberAccess (map_expr expr, member)
+      | PointerAccess (expr, member) -> PointerAccess (map_expr expr, member)
+      | SizeofExpr (expr) -> SizeofExpr (map_expr expr)
+      | SizeofType (ty) -> SizeofType (map_type ty)
+      | AlignofExpr (expr) -> AlignofExpr (map_expr expr)
+      | AlignofType (ty) -> AlignofType (map_type ty)
+      | Offsetof (ty, member) -> Offsetof (map_type ty, map_expr member)
+      | TypesCompatibleP (ty1, ty2) -> TypesCompatibleP (map_type ty1, map_type ty2)
+      | VaArg (ap, ty) -> VaArg (map_expr ap, map_type ty)
+      | FunctionCall (callee, args) -> FunctionCall (map_expr callee, map map_expr args)
+      | CompoundLiteral (ty, init) -> CompoundLiteral (map_type ty, map_expr init)
 
-  (* Primary expression *)
-  | Identifier _
-  | IntegerLiteral _
-  | FloatingLiteral _
-  | CharLiteral _
-  | StringLiteral _ as node -> node
-  | BraceExpression (trs, stmt) -> BraceExpression (trs, map_stmt stmt)
+      | Identifier _
+      | IntegerLiteral _
+      | FloatingLiteral _
+      | CharLiteral _
+      | StringLiteral _ as node -> node
+      | BraceExpression (stmt) -> BraceExpression (map_stmt stmt)
 
-  (* Cast expression *)
-  | Cast (trs, ty, expr) -> Cast (trs, map_type ty, map_expr expr)
+      | Cast (ty, expr) -> Cast (map_type ty, map_expr expr)
 
-  (* Initialisers *)
-  | InitialiserList (trs, inits) -> InitialiserList (trs, map map_expr inits)
-  | MemberDesignator (members) as node -> node
-  | ArrayLabelledInitialiser (trs, index, init) -> ArrayLabelledInitialiser (trs, map_expr index, map_expr init)
-  | DesignatedInitialiser (trs, designator, init) -> DesignatedInitialiser (trs, map_expr designator, map_expr init)
+      | InitialiserList (inits) -> InitialiserList (map map_expr inits)
+      | ArrayLabelledInitialiser (index, init) -> ArrayLabelledInitialiser (map_expr index, map_expr init)
+      | DesignatedInitialiser (designator, init) -> DesignatedInitialiser (designator, map_expr init)
+  }
 
 
 let map_type { map_type; map_expr; map_stmt; map_decl } = function
@@ -360,28 +356,28 @@ let fold_expr { fold_type; fold_expr; fold_stmt; fold_decl } data node =
       data |> (fold_type, ty) |> (fold_expr, expr)
 
   (* Expression *)
-  | TernaryExpression (_, op, cond, then_expr, else_expr) ->
+  | TernaryExpression (op, cond, then_expr, else_expr) ->
       data |> (fold_expr, cond) |> (opt fold_expr, then_expr) |> (fold_expr, else_expr)
-  | BinaryExpression (_, op, lhs, rhs) ->
+  | BinaryExpression (op, lhs, rhs) ->
       data |> (fold_expr, lhs) |> (fold_expr, rhs)
-  | UnaryExpression (_, op, expr) -> fold_expr data expr
-  | ArrayAccess (_, expr, index) ->
+  | UnaryExpression (op, expr) -> fold_expr data expr
+  | ArrayAccess (expr, index) ->
       data |> (fold_expr, expr) |> (fold_expr, index)
-  | MemberAccess (_, expr, member) -> fold_expr data expr
-  | PointerAccess (_, expr, member) -> fold_expr data expr
-  | SizeofExpr (_, expr) -> fold_expr data expr
-  | SizeofType (_, ty) -> fold_type data ty
-  | AlignofExpr (_, expr) -> fold_expr data expr
-  | AlignofType (_, ty) -> fold_type data ty
-  | Offsetof (_, ty, member) ->
+  | MemberAccess (expr, member) -> fold_expr data expr
+  | PointerAccess (expr, member) -> fold_expr data expr
+  | SizeofExpr (expr) -> fold_expr data expr
+  | SizeofType (ty) -> fold_type data ty
+  | AlignofExpr (expr) -> fold_expr data expr
+  | AlignofType (ty) -> fold_type data ty
+  | Offsetof (ty, member) ->
       data |> (fold_type, ty) |> (fold_expr, member)
-  | TypesCompatibleP (_, ty1, ty2) ->
+  | TypesCompatibleP (ty1, ty2) ->
       data |> (fold_type, ty1) |> (fold_type, ty2)
-  | VaArg (_, ap, ty) ->
+  | VaArg (ap, ty) ->
       data |> (fold_expr, ap) |> (fold_type, ty)
-  | FunctionCall (_, callee, args) ->
+  | FunctionCall (callee, args) ->
       data |> (fold_expr, callee) |> (fold_left fold_expr, args)
-  | CompoundLiteral (_, ty, init) ->
+  | CompoundLiteral (ty, init) ->
       data |> (fold_type, ty) |> (fold_expr, init)
 
   (* Primary expression *)
@@ -390,18 +386,17 @@ let fold_expr { fold_type; fold_expr; fold_stmt; fold_decl } data node =
   | FloatingLiteral _
   | CharLiteral _
   | StringLiteral _ -> data
-  | BraceExpression (_, stmt) -> fold_stmt data stmt
+  | BraceExpression (stmt) -> fold_stmt data stmt
 
   (* Cast expression *)
-  | Cast (_, ty, expr) -> fold_expr (fold_type data ty) expr
+  | Cast (ty, expr) -> fold_expr (fold_type data ty) expr
 
   (* Initialisers *)
-  | InitialiserList (_, inits) -> fold_left fold_expr data inits
-  | MemberDesignator (_) -> data
-  | ArrayLabelledInitialiser (_, index, init) ->
+  | InitialiserList (inits) -> fold_left fold_expr data inits
+  | ArrayLabelledInitialiser (index, init) ->
       data |> (fold_expr, index) |> (fold_expr, init)
-  | DesignatedInitialiser (_, designator, init) ->
-      data |> (fold_expr, designator) |> (fold_expr, init)
+  | DesignatedInitialiser (designator, init) ->
+      data |> (fold_expr, init)
 
 
 let fold_type { fold_type; fold_expr; fold_stmt; fold_decl } data node =

@@ -218,10 +218,10 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
         p label; p ":"; output_stmt stmt
     | LocalLabel (labels) ->
         t KW_LABEL; l "," labels; p ";"
-    | GotoStatement (Identifier (_, label)) ->
+    | GotoStatement { e = Identifier label } ->
         t KW_GOTO; p label; p ";"
     (* special case for computed goto *)
-    | GotoStatement (UnaryExpression (_, OP_Dereference, expr)) ->
+    | GotoStatement { e = UnaryExpression (OP_Dereference, expr) } ->
         t KW_GOTO; p "*"; output_expr expr; p ";"
     | GotoStatement (_) ->
         die (Statement_error ("invalid argument to `goto'", None, [node]))
@@ -272,16 +272,16 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
   and output_expr outer_op inner =
     let open Operator in
 
-    let pos = Traits.pos_of_expr inner in
+    let pos = inner.e_sloc in
     let output_start_pos () =  pl true  (fst pos) in
     let output_end_pos = lazy (pl false (snd pos)) in
 
     let rec printer = function
       (* Expression type information is ignored in code generation *)
       | TypedExpression (_, _, expr) ->
-          printer expr
+          printer expr.e
 
-      | TernaryExpression (_, op, cond, then_expr, else_expr) ->
+      | TernaryExpression (op, cond, then_expr, else_expr) ->
           let ternop = TernaryOperator op in
           ternop, fun () ->
             let op1, op2 = Printing.string_of_ternop op in
@@ -291,14 +291,14 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             p op2;
             output_expr ternop else_expr
 
-      | BinaryExpression (_, op, lhs, rhs) ->
+      | BinaryExpression (op, lhs, rhs) ->
           let binop = BinaryOperator op in
           binop, fun () ->
             output_expr binop lhs;
             p (Printing.string_of_binop op);
             output_expr binop rhs
 
-      | UnaryExpression (_, op, expr) ->
+      | UnaryExpression (op, expr) ->
           let unop = UnaryOperator op in
           unop, if Operator.is_prefix op then
             fun () ->
@@ -309,19 +309,19 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
               output_expr unop expr;
               p (Printing.string_of_unop op)
 
-      | ArrayLabelledInitialiser (_, index, init) ->
+      | ArrayLabelledInitialiser (index, init) ->
           let binop = PseudoOperator OP_ArrayLabelledInitialiser in
           binop, fun () ->
             p "["; output_expr Operator.lowest index; p "]";
             p "="; output_expr binop init
 
-      | DesignatedInitialiser (_, designator, init) ->
+      | DesignatedInitialiser (designator, init) ->
           let binop = PseudoOperator OP_DesignatedInitialiser in
           binop, fun () ->
-            output_expr binop designator;
+            iter (fun m -> p "."; p m) designator.dg;
             p "="; output_expr binop init
 
-      | FunctionCall (_, callee, args) ->
+      | FunctionCall (callee, args) ->
           let binop = PseudoOperator OP_FunctionCall in
           binop, fun () ->
             output_expr binop callee;
@@ -330,7 +330,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_sep (output_expr op_assign) p "," args;
             p ")"
 
-      | ArrayAccess (_, expr, index) ->
+      | ArrayAccess (expr, index) ->
           let binop = PseudoOperator OP_ArrayAccess in
           binop, fun () ->
             output_expr binop expr;
@@ -339,26 +339,26 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_expr Operator.lowest index;
             p "]"
 
-      | PointerAccess (_, expr, member) ->
+      | PointerAccess (expr, member) ->
           let binop = PseudoOperator OP_PointerAccess in
           binop, fun () ->
             output_expr binop expr;
             p "->";
             p member
 
-      | MemberAccess (_, expr, member) ->
+      | MemberAccess (expr, member) ->
           let binop = PseudoOperator OP_MemberAccess in
           binop, fun () ->
             output_expr binop expr;
             p ".";
             p member
 
-      | AlignofExpr (_, expr) ->
+      | AlignofExpr (expr) ->
           let unop = PseudoOperator OP_Alignof in
           unop, fun () ->
             t KW_ALIGNOF;
             output_expr unop expr
-      | AlignofType (_, expr) ->
+      | AlignofType (expr) ->
           let unop = PseudoOperator OP_Alignof in
           unop, fun () ->
             t KW_ALIGNOF;
@@ -366,12 +366,12 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_type expr;
             p ")"
 
-      | SizeofExpr (_, expr) ->
+      | SizeofExpr (expr) ->
           let unop = PseudoOperator OP_Sizeof in
           unop, fun () ->
             t KW_SIZEOF;
             output_expr unop expr
-      | SizeofType (_, expr) ->
+      | SizeofType (expr) ->
           let unop = PseudoOperator OP_Sizeof in
           unop, fun () ->
             t KW_SIZEOF;
@@ -379,7 +379,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_type expr;
             p ")"
 
-      | Cast (_, ty, expr) ->
+      | Cast (ty, expr) ->
           let unop = PseudoOperator OP_Cast in
           unop, fun () ->
             p "(";
@@ -387,7 +387,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             p ")";
             output_expr unop expr
 
-      | Offsetof (_, ty, member) ->
+      | Offsetof (ty, member) ->
           let unop = Operator.highest in
           unop, fun () ->
             t KW_OFFSETOF;
@@ -397,7 +397,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_expr unop member;
             p ")"
 
-      | TypesCompatibleP (_, ty1, ty2) ->
+      | TypesCompatibleP (ty1, ty2) ->
           let unop = Operator.highest in
           unop, fun () ->
             t KW_TYPES_COMPATIBLE_P;
@@ -407,7 +407,7 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_type ty2;
             p ")"
 
-      | VaArg (_, ap, ty) ->
+      | VaArg (ap, ty) ->
           let unop = Operator.highest in
           unop, fun () ->
             t KW_VA_ARG;
@@ -417,45 +417,41 @@ let output_toplevel (p : string -> unit) (pl : bool -> Lexing.position -> unit) 
             output_type ty;
             p ")"
 
-      | CompoundLiteral (_, ty, init) ->
+      | CompoundLiteral (ty, init) ->
           let binop = Operator.highest in
           binop, fun () ->
             p "("; output_type ty; p ")";
             output_expr binop init
 
-      | BraceExpression (_, stmt) ->
+      | BraceExpression (stmt) ->
           Operator.highest, fun () ->
             p "("; output_stmt stmt; p ")"
 
-      | WildcardExpr (_, wc) ->
+      | WildcardExpr (wc) ->
           Operator.highest, fun () -> p wc
 
-      | CharLiteral (_, _, s)
-      | Identifier (_, s) ->
+      | CharLiteral (_, s)
+      | Identifier (s) ->
           Operator.highest, fun () -> p s
-      | IntegerLiteral (_, _, s, None)
-      | FloatingLiteral (_, _, s, None) ->
+      | IntegerLiteral (_, s, None)
+      | FloatingLiteral (_, s, None) ->
           Operator.highest, fun () -> p s
-      | IntegerLiteral (_, _, s, Some suffix)
-      | FloatingLiteral (_, _, s, Some suffix) ->
+      | IntegerLiteral (_, s, Some suffix)
+      | FloatingLiteral (_, s, Some suffix) ->
           Operator.highest, fun () -> p (s ^ suffix)
-      | StringLiteral (_, _, s) ->
+      | StringLiteral (_, s) ->
           Operator.highest, fun () -> iter p s
 
-      | InitialiserList (_, inits) ->
+      | InitialiserList (inits) ->
           let binop = Operator.highest in
           binop, fun () ->
             p "{";
             output_sep (output_expr binop) p "," inits;
             Lazy.force output_end_pos;
             p "}"
-
-      | MemberDesignator (member) ->
-          Operator.highest, fun () ->
-            iter (fun m -> p "."; p m) member
     in
 
-    let inner_op, out = printer inner in
+    let inner_op, out = printer inner.e in
 
     let need_bracket =
       let inner_prec = precedence_of_operator inner_op in

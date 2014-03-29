@@ -4,8 +4,13 @@ open ParseUtil
 open Sclass
 open Tqual
 
-let stmt s_sloc s = { s; s_sloc }
+let desg dg_sloc dg = { dg; dg_sloc }
+let stmt  s_sloc  s = {  s;  s_sloc }
+let expr  e_sloc  e = {  e;  e_sloc }
+
+#define mkdesg	desg ($startpos, $endpos)
 #define mkstmt	stmt ($startpos, $endpos)
+#define mkexpr	expr ($startpos, $endpos)
 #define LOC	[`Position ($startpos, $endpos)]
 %}
 
@@ -525,12 +530,17 @@ decl_initialiser:
 initialiser:
 	| basic_initialiser
 		{ $1 }
-	| TK_IDENTIFIER TK_COLON basic_initialiser
-		{ DesignatedInitialiser (LOC, MemberDesignator [$1], $3) }
-	| member_designator+ TK_EQUALS basic_initialiser
-		{ DesignatedInitialiser (LOC, MemberDesignator ($1), $3) }
+	| member_designators basic_initialiser
+		{ mkexpr @@ DesignatedInitialiser ($1, $2) }
 	| TK_LSQBRACK range_expression TK_RSQBRACK TK_EQUALS? basic_initialiser
-		{ ArrayLabelledInitialiser (LOC, $2, $5) }
+		{ mkexpr @@ ArrayLabelledInitialiser ($2, $5) }
+
+
+member_designators:
+	| member_designator+ TK_EQUALS
+		{ mkdesg @@ $1 }
+	| TK_IDENTIFIER TK_COLON
+		{ mkdesg @@ [$1] }
 
 
 member_designator:
@@ -542,7 +552,7 @@ range_expression:
 	| assignment_expression
 		{ $1 }
 	| assignment_expression TK_ELLIPSIS assignment_expression
-		{ BinaryExpression (LOC, OP_Ellipsis, $1, $3) }
+		{ mkexpr @@ BinaryExpression (OP_Ellipsis, $1, $3) }
 
 
 basic_initialiser:
@@ -552,9 +562,9 @@ basic_initialiser:
 
 bracketed_initialiser_list:
 	| TK_LBRACE TK_RBRACE
-		{ InitialiserList (LOC, []) }
+		{ mkexpr @@ InitialiserList [] }
 	| TK_LBRACE sep_rev(TK_COMMA, initialiser) TK_COMMA? TK_RBRACE
-		{ InitialiserList (LOC, List.rev $2) }
+		{ mkexpr @@ InitialiserList (List.rev $2) }
 
 
 /*
@@ -637,7 +647,7 @@ primary_expression:
 	| statement_expression
 		{ $1 }
 	| WC_EXPR
-		{ WildcardExpr (LOC, $1) }
+		{ mkexpr @@ WildcardExpr ($1) }
 #if 0
 	| WC_DECL
 		{ WildcardDecl (LOC, $1) }
@@ -645,36 +655,36 @@ primary_expression:
 
 statement_expression:
 	| TK_LBRACK compound_statement TK_RBRACK
-		{ BraceExpression (LOC, $2) }
+		{ mkexpr @@ BraceExpression ($2) }
 
 
 postfix_expression:
 	| primary_expression
 		{ $1 }
 	| postfix_expression TK_LSQBRACK expression TK_RSQBRACK
-		{ ArrayAccess (LOC, $1, $3) }
+		{ mkexpr @@ ArrayAccess ($1, $3) }
 	| postfix_expression TK_LBRACK sep(TK_COMMA, assignment_expression)? TK_RBRACK
-		{ FunctionCall (LOC, $1, list_from_opt $3) }
+		{ mkexpr @@ FunctionCall ($1, list_from_opt $3) }
 	| postfix_expression TK_PERIOD identifier_or_typedef_name
-		{ MemberAccess (LOC, $1, $3) }
+		{ mkexpr @@ MemberAccess ($1, $3) }
 	| postfix_expression TK_ARROW identifier_or_typedef_name
-		{ PointerAccess (LOC, $1, $3) }
+		{ mkexpr @@ PointerAccess ($1, $3) }
 	| postfix_expression TK_PERIOD WC_DECL
-		{ MemberAccess (LOC, $1, $3) }
+		{ mkexpr @@ MemberAccess ($1, $3) }
 	| postfix_expression TK_ARROW WC_DECL
-		{ PointerAccess (LOC, $1, $3) }
+		{ mkexpr @@ PointerAccess ($1, $3) }
 	| postfix_expression TK_INC
-		{ UnaryExpression (LOC, OP_PostIncrement, $1) }
+		{ mkexpr @@ UnaryExpression (OP_PostIncrement, $1) }
 	| postfix_expression TK_DEC
-		{ UnaryExpression (LOC, OP_PostDecrement, $1) }
+		{ mkexpr @@ UnaryExpression (OP_PostDecrement, $1) }
 	| KW_OFFSETOF TK_LBRACK type_name TK_COMMA postfix_expression TK_RBRACK
-		{ Offsetof (LOC, $3, $5) }
+		{ mkexpr @@ Offsetof ($3, $5) }
 	| KW_TYPES_COMPATIBLE_P TK_LBRACK type_name TK_COMMA type_name TK_RBRACK
-		{ TypesCompatibleP (LOC, $3, $5) }
+		{ mkexpr @@ TypesCompatibleP ($3, $5) }
 	| KW_VA_ARG TK_LBRACK assignment_expression TK_COMMA type_name TK_RBRACK
-		{ VaArg (LOC, $3, $5) }
+		{ mkexpr @@ VaArg ($3, $5) }
 	| TK_LBRACK type_name TK_RBRACK bracketed_initialiser_list
-		{ CompoundLiteral (LOC, $2, $4) }
+		{ mkexpr @@ CompoundLiteral ($2, $4) }
 
 
 unary_prefix_operator:
@@ -694,17 +704,17 @@ unary_expression:
 	| postfix_expression
 		{ $1 }
 	| unary_prefix_operator unary_expression
-		{ UnaryExpression (LOC, $1, $2) }
+		{ mkexpr @@ UnaryExpression ($1, $2) }
 	| unary_operator cast_expression
-		{ UnaryExpression (LOC, $1, $2) }
+		{ mkexpr @@ UnaryExpression ($1, $2) }
 	| KW_SIZEOF unary_expression
-		{ SizeofExpr (LOC, $2) }
+		{ mkexpr @@ SizeofExpr ($2) }
 	| KW_SIZEOF TK_LBRACK type_name TK_RBRACK
-		{ SizeofType (LOC, $3) }
+		{ mkexpr @@ SizeofType ($3) }
 	| KW_ALIGNOF TK_LBRACK unary_expression TK_RBRACK
-		{ AlignofExpr (LOC, $3) }
+		{ mkexpr @@ AlignofExpr ($3) }
 	| KW_ALIGNOF TK_LBRACK type_name TK_RBRACK
-		{ AlignofType (LOC, $3) }
+		{ mkexpr @@ AlignofType ($3) }
 	| KW_EXTENSION cast_expression
 		{ $2 }
 
@@ -713,7 +723,7 @@ cast_expression:
 	| unary_expression
 		{ $1 }
 	| TK_LBRACK type_name TK_RBRACK cast_expression
-		{ Cast (LOC, $2, $4) }
+		{ mkexpr @@ Cast ($2, $4) }
 
 
 multiplicative_operator:
@@ -724,7 +734,7 @@ multiplicative_expression:
 	| cast_expression
 		{ $1 }
 	| multiplicative_expression multiplicative_operator cast_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 additive_operator:
@@ -734,7 +744,7 @@ additive_expression:
 	| multiplicative_expression
 		{ $1 }
 	| additive_expression additive_operator multiplicative_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 shift_operator:
@@ -744,7 +754,7 @@ shift_expression:
 	| additive_expression
 		{ $1 }
 	| shift_expression shift_operator additive_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 relational_operator:
@@ -756,7 +766,7 @@ relational_expression:
 	| shift_expression
 		{ $1 }
 	| relational_expression relational_operator shift_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 equality_operator:
@@ -766,7 +776,7 @@ equality_expression:
 	| relational_expression
 		{ $1 }
 	| equality_expression equality_operator relational_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 and_operator:
@@ -775,7 +785,7 @@ and_expression:
 	| equality_expression
 		{ $1 }
 	| and_expression and_operator equality_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 exclusive_or_operator:
@@ -784,7 +794,7 @@ exclusive_or_expression:
 	| and_expression
 		{ $1 }
 	| exclusive_or_expression exclusive_or_operator and_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 inclusive_or_operator:
@@ -793,7 +803,7 @@ inclusive_or_expression:
 	| exclusive_or_expression
 		{ $1 }
 	| inclusive_or_expression inclusive_or_operator exclusive_or_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 logical_and_operator:
@@ -802,7 +812,7 @@ logical_and_expression:
 	| inclusive_or_expression
 		{ $1 }
 	| logical_and_expression logical_and_operator inclusive_or_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 logical_or_operator:
@@ -811,14 +821,14 @@ logical_or_expression:
 	| logical_and_expression
 		{ $1 }
 	| logical_or_expression logical_or_operator logical_and_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 conditional_expression:
 	| logical_or_expression
 		{ $1 }
 	| logical_or_expression TK_QMARK expression? TK_COLON conditional_expression
-		{ TernaryExpression (LOC, OP_Conditional, $1, $3, $5) }
+		{ mkexpr @@ TernaryExpression (OP_Conditional, $1, $3, $5) }
 
 
 assignment_operator:
@@ -837,14 +847,14 @@ assignment_expression:
 	| conditional_expression
 		{ $1 }
 	| cast_expression assignment_operator assignment_expression
-		{ BinaryExpression (LOC, $2, $1, $3) }
+		{ mkexpr @@ BinaryExpression ($2, $1, $3) }
 
 
 expression:
 	| assignment_expression
 		{ $1 }
 	| expression TK_COMMA assignment_expression
-		{ BinaryExpression (LOC, OP_Comma, $1, $3) }
+		{ mkexpr @@ BinaryExpression (OP_Comma, $1, $3) }
 
 
 constant_expression:
@@ -854,26 +864,26 @@ constant_expression:
 
 numeric_literal:
 	| TK_INTEGER_CONSTANT
-		{ IntegerLiteral (LOC, LIT_Dec, fst $1, snd $1) }
+		{ mkexpr @@ IntegerLiteral (LIT_Dec, fst $1, snd $1) }
 	| TK_OCTAL_CONSTANT
-		{ IntegerLiteral (LOC, LIT_Oct, fst $1, snd $1) }
+		{ mkexpr @@ IntegerLiteral (LIT_Oct, fst $1, snd $1) }
 	| TK_HEX_CONSTANT
-		{ IntegerLiteral (LOC, LIT_Hex, fst $1, snd $1) }
+		{ mkexpr @@ IntegerLiteral (LIT_Hex, fst $1, snd $1) }
 	| TK_BIN_CONSTANT
-		{ IntegerLiteral (LOC, LIT_Bin, fst $1, snd $1) }
+		{ mkexpr @@ IntegerLiteral (LIT_Bin, fst $1, snd $1) }
 	| TK_FLOATING_CONSTANT
-		{ FloatingLiteral (LOC, LIT_Float, fst $1, snd $1) }
+		{ mkexpr @@ FloatingLiteral (LIT_Float, fst $1, snd $1) }
 	| TK_HEX_FLOATING_CONSTANT
-		{ FloatingLiteral (LOC, LIT_HexFloat, fst $1, snd $1) }
+		{ mkexpr @@ FloatingLiteral (LIT_HexFloat, fst $1, snd $1) }
 	| TK_CHAR_CONSTANT
-		{ CharLiteral (LOC, LIT_Char, $1) }
+		{ mkexpr @@ CharLiteral (LIT_Char, $1) }
 	| TK_WCHAR_CONSTANT
-		{ CharLiteral (LOC, LIT_WChar, $1) }
+		{ mkexpr @@ CharLiteral (LIT_WChar, $1) }
 
 
 string_literal:
 	| simple_string_literal+
-		{ merge_string_literals LOC [] $1 }
+		{ mkexpr @@ merge_string_literals [] $1 }
 
 simple_string_literal:
 	| TK_STRING_LITERAL
@@ -1071,7 +1081,7 @@ struct_or_union:
 
 identifier:
 	| TK_IDENTIFIER
-		{ Identifier (LOC, $1) }
+		{ mkexpr @@ Identifier ($1) }
 
 
 identifier_or_typedef_name:
@@ -1514,5 +1524,5 @@ attrib:
 	| KW_ATTR_WEAKREF
 		{ "weakref", [] }
 
-/* vim: tw=0 noexpandtab
+/* vim: tw=0 noexpandtab indentexpr=
  */

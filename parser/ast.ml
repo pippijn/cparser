@@ -246,71 +246,52 @@ and stmt_ =
 
 (** {6 Expressions} *)
 
-and expr =
-  | WildcardExpr of position * string
-  (** [WildcardExpr (_, wildcard)] *)
+and expr = {
+  e : expr_;
+  e_sloc : Location.t;
+}
+
+and expr_ =
+  | WildcardExpr of string
 
   | TypedExpression of (*ty*)ctyp * (*value*)Constant.t * (*expr*)expr
-  (** [TypedExpression (type, value, expr)] expr with type information. *)
 
-  | TernaryExpression of position * ternary_operator * (*cond*)expr * (*then*)expr option * (*else*)expr
-  (** [TernaryExpression (_, op, cond, then, else)] *)
-  | BinaryExpression of position * binary_operator * (*lhs*)expr * (*rhs*)expr
-  (** [BinaryExpression (_, op, lhs, rhs)] *)
-  | UnaryExpression of position * unary_operator * (*expr*)expr
-  (** [UnaryExpression (_, op, expr)] *)
-  | SizeofExpr of position * (*expr*)expr
-  (** [SizeofExpr (_, expr)] *)
-  | SizeofType of position * (*type*)ctyp
-  (** [SizeofType (_, type)] *)
-  | AlignofExpr of position * (*expr*)expr
-  (** [AlignofExpr (_, expr)] *)
-  | AlignofType of position * (*type*)ctyp
-  (** [AlignofType (_, expr)] *)
-  | Offsetof of position * (*type*)ctyp * (*member*)expr
-  (** [Offsetof (_, type, member)] *)
-  | TypesCompatibleP of position * (*type1*)ctyp * (*type2*)ctyp
-  (** [TypesCompatibleP (_, type1, type2)] *)
-  | VaArg of position * (*ap*)expr * (*type*)ctyp
-  (** [VaArg (_, ap, type)] *)
-  | FunctionCall of position * (*callee*)expr * (*args*)expr list
-  (** [FunctionCall (_, callee, args)] *)
-  | CompoundLiteral of position * (*type*)ctyp * (*init*)expr
-  (** [CompoundLiteral (_, type, inits)] *)
-  | ArrayAccess of position * (*expr*)expr * (*index*)expr
-  (** [ArrayAccess (_, expr, index)] *)
-  | MemberAccess of position * (*expr*)expr * (*member*)string
-  (** [MemberAccess (_, expr, member)] *)
-  | PointerAccess of position * (*expr*)expr * (*member*)string
-  (** [PointerAccess (_, expr, member)] *)
+  | TernaryExpression of ternary_operator * (*cond*)expr * (*then*)expr option * (*else*)expr
+  | BinaryExpression of binary_operator * (*lhs*)expr * (*rhs*)expr
+  | UnaryExpression of unary_operator * (*expr*)expr
+  | SizeofExpr of (*expr*)expr
+  | SizeofType of (*type*)ctyp
+  | AlignofExpr of (*expr*)expr
+  | AlignofType of (*type*)ctyp
+  | Offsetof of (*type*)ctyp * (*member*)expr
+  | TypesCompatibleP of (*type1*)ctyp * (*type2*)ctyp
+  | VaArg of (*ap*)expr * (*type*)ctyp
+  | FunctionCall of (*callee*)expr * (*args*)expr list
+  | CompoundLiteral of (*type*)ctyp * (*init*)expr
+  | ArrayAccess of (*expr*)expr * (*index*)expr
+  | MemberAccess of (*expr*)expr * (*member*)string
+  | PointerAccess of (*expr*)expr * (*member*)string
 
   (* Primary expression *)
-  | Identifier of position * (*id*)string
-  (** [Identifier (_, id)] *)
-  | IntegerLiteral of position * integer_literal_kind * string * string option
-  (** [IntegerLiteral (_, kind, number, suffix)] *)
-  | FloatingLiteral of position * floating_literal_kind * string * string option
-  (** [FloatingLiteral (_, kind, number, suffix)] *)
-  | CharLiteral of position * char_literal_kind * string
-  (** [CharLiteral (_, kind, character)] *)
-  | StringLiteral of position * string_literal_kind * string list
-  (** [StringLiteral (_, kind, strings)] *)
-  | BraceExpression of position * (*stmt*)stmt
-  (** [BraceExpression (_, stmt)] *)
+  | Identifier of (*id*)string
+  | IntegerLiteral of integer_literal_kind * string * string option
+  | FloatingLiteral of floating_literal_kind * string * string option
+  | CharLiteral of char_literal_kind * string
+  | StringLiteral of string_literal_kind * string list
+  | BraceExpression of (*stmt*)stmt
 
   (* Cast expression *)
-  | Cast of position * (*type*)ctyp * (*expr*)expr
-  (** [Cast (_, type, expr)] *)
+  | Cast of (*type*)ctyp * (*expr*)expr
 
   (* Initialisers *)
-  | InitialiserList of position * (*inits*)expr list
-  (** [InitialiserList (_, inits)] *)
-  | MemberDesignator of (*member*)string list
-  (** [MemberDesignator (_, member)] *)
-  | ArrayLabelledInitialiser of position * (*index*)expr * (*init*)expr
-  (** [ArrayLabelledInitialiser (_, index, init)] *)
-  | DesignatedInitialiser of position * (*designator*)expr * (*init*)expr
-  (** [DesignatedInitialiser (_, designator, init)] *)
+  | InitialiserList of (*inits*)expr list
+  | ArrayLabelledInitialiser of (*index*)expr * (*init*)expr
+  | DesignatedInitialiser of (*designator*)desg * (*init*)expr
+
+and desg = {
+  dg : string list;
+  dg_sloc : Location.t;
+}
 
 
 (** {6 Types} *)

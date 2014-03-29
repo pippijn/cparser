@@ -55,9 +55,13 @@ let string_type length kind chars =
   let length = length + 1 in
 
   ArrayType (
-    Some (
-      TypedExpression (
-        Platform.size_t,
-        Constant.IntValue (Mach_int.mach_int_of_int length),
-        IntegerLiteral (Traits.empty_position, LIT_Dec, string_of_int length, None))),
+    Some {
+      e = TypedExpression (
+          Platform.size_t,
+          Constant.IntValue (Mach_int.mach_int_of_int length),
+          { e = IntegerLiteral (LIT_Dec, string_of_int length, None);
+            e_sloc = Location.dummy;
+          });
+      e_sloc = Location.dummy;
+    },
     BasicType bt)

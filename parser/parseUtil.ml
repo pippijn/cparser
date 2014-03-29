@@ -34,7 +34,7 @@ let string_of_attrib (name, args) =
     | _ -> ""
 
 
-let merge_string_literals loc literal info =
+let merge_string_literals literal info =
   let rec collect strs strkind = function
     | (kind, lit) :: tl when strkind <> LIT_WString ->
         collect (lit :: strs) kind tl
@@ -43,7 +43,7 @@ let merge_string_literals loc literal info =
     | [] -> strkind, (List.rev strs)
   in
   let kind, strs = collect [] LIT_String info in
-  StringLiteral (loc, kind, strs)
+  StringLiteral (kind, strs)
 
 
 let default_int = PartialBasicType [BT_Default]

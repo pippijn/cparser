@@ -110,7 +110,7 @@ let parse wcols code sexp output error missing =
         let open Codegen in
         match e with
         | Expression_error (e, section, exprs) ->
-            error (format_error pos_of_expr code_of_expr e exprs)
+            error (format_error (fun expr -> expr.e_sloc) code_of_expr e exprs)
         | Declaration_error (e, section, decls) ->
             error (format_error pos_of_decl code_of_decl e decls)
         | Type_error (e, section, types) ->
